@@ -1,0 +1,36 @@
+THIRD-PARTY SOFTWARE NOTICE
+==========================
+
+This application bundles third-party open-source software.
+
+------------------------------------------------------------
+
+yt-dlp
+------
+
+Copyright (c) yt-dlp contributors
+License: The Unlicense
+Source: https://github.com/yt-dlp/yt-dlp
+
+yt-dlp is distributed under the terms of the Unlicense.
+A copy of the Unlicense is available at:
+https://unlicense.org/
+
+------------------------------------------------------------
+
+FFmpeg
+------
+
+Copyright (c) FFmpeg developers
+License: LGPL 2.1+ (or GPL, depending on build)
+Source: https://ffmpeg.org
+
+FFmpeg is used as an external executable and is not statically linked
+into this application.
+
+Users retain all rights granted by the FFmpeg license.
+
+------------------------------------------------------------
+
+This notice is provided for transparency and attribution and does not
+imply endorsement by the authors of the above software.

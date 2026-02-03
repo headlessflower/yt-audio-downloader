@@ -1,0 +1,94 @@
+# ===============================
+# Node / JavaScript
+# ===============================
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# ===============================
+# Build outputs
+# ===============================
+dist/
+dist-electron/
+out/
+build/
+release/
+*.log
+
+# ===============================
+# Electron
+# ===============================
+app.asar
+app.asar.unpacked/
+
+# ===============================
+# Vite
+# ===============================
+.vite/
+.vite-ssr/
+
+# ===============================
+# Environment files
+# ===============================
+.env
+.env.*
+!.env.example
+
+# ===============================
+# Downloaded binaries (yt-dlp, ffmpeg, ffprobe)
+# These are fetched via scripts and NOT committed
+# ===============================
+bin/
+binaries/
+ffmpeg/
+ffprobe/
+yt-dlp
+yt-dlp.exe
+*.exe
+*.dll
+*.so
+*.dylib
+
+# ===============================
+# Media / temporary downloads
+# ===============================
+downloads/
+tmp/
+temp/
+*.mp4
+*.mkv
+*.webm
+*.mp3
+*.wav
+*.flac
+*.m4a
+
+# ===============================
+# OS junk
+# ===============================
+.DS_Store
+Thumbs.db
+ehthumbs.db
+desktop.ini
+
+# ===============================
+# Editors / IDEs
+# ===============================
+.vscode/
+!.vscode/extensions.json
+.idea/
+*.swp
+*.swo
+
+# ===============================
+# Electron Builder
+# ===============================
+/.cache/
+electron-builder.yml.bak
+
+# ===============================
+# Misc
+# ===============================
+coverage/

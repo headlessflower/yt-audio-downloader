@@ -1,0 +1,81 @@
+{
+  "name": "yt-audio-downloader",
+  "private": true,
+  "version": "0.1.0",
+  "main": "dist/main/index.js",
+  "type": "module",
+  "scripts": {
+    "dev": "electron-vite dev",
+    "build": "electron-vite build && electron-builder",
+    "build:linux": "electron-vite build && electron-builder --linux",
+    "build:appimage": "electron-vite build && electron-builder --linux AppImage",
+    "build:mac": "electron-vite build && electron-builder --mac",
+    "build:mac:x64": "electron-vite build && electron-builder --mac --x64",
+    "build:mac:arm64": "electron-vite build && electron-builder --mac --arm64",
+    "build:dir": "electron-vite build && electron-builder --dir",
+    "lint": "eslint .",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "electron-store": "^8.1.0",
+    "nanoid": "^5.0.7"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.6",
+    "@vitejs/plugin-vue": "^5.2.0",
+    "electron": "^32.2.2",
+    "electron-builder": "^25.1.8",
+    "electron-vite": "^5.0.0",
+    "ffmpeg-ffprobe-static": "^6.1.2-rc.1",
+    "typescript": "^5.7.3",
+    "vite": "^6.0.7",
+    "vue": "^3.5.13"
+  },
+  "build": {
+    "appId": "com.headlessflower.ytaudiodownloader",
+    "productName": "YT Audio Downloader",
+    "files": [
+      "dist/**"
+    ],
+    "extraResources": [
+      {
+        "from": "resources/bin",
+        "to": "bin",
+        "filter": [
+          "**/*"
+        ]
+      }
+    ],
+    "directories": {
+      "buildResources": "build"
+    },
+    "mac": {
+      "target": [
+        "dmg"
+      ],
+      "category": "public.app-category.music",
+      "hardenedRuntime": true,
+      "gatekeeperAssess": false
+    },
+    "dmg": {
+      "contents": [
+        {
+          "x": 130,
+          "y": 220
+        },
+        {
+          "x": 410,
+          "y": 220,
+          "type": "link",
+          "path": "/Applications"
+        }
+      ]
+    },
+    "linux": {
+      "target": [
+        "AppImage"
+      ],
+      "category": "AudioVideo"
+    }
+  }
+}
