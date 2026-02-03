@@ -33,7 +33,7 @@
   },
   "build": {
     "appId": "com.headlessflower.ytaudiodownloader",
-    "productName": "YT Audio Downloader",
+    "productName": "Guava Music Vault",
     "files": [
       "dist/**"
     ],

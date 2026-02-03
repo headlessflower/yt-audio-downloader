@@ -7,6 +7,8 @@ import type {
   QueueState,
 } from "../renderer/types";
 
+import { QUEUE_LIMITS, type PlanTier } from "./queueLimits";
+
 type UpdateFn = (state: QueueState) => void;
 
 export class DownloadQueue {
@@ -15,8 +17,18 @@ export class DownloadQueue {
   private proc: ReturnType<typeof spawn> | null = null;
   private notify: UpdateFn;
 
-  constructor(notify: UpdateFn) {
+  // NEW: plan tier (default free)
+  private plan: PlanTier;
+
+  constructor(notify: UpdateFn, plan: PlanTier = "free") {
     this.notify = notify;
+    this.plan = plan;
+  }
+
+  // Optional: update plan at runtime (after license check, login, etc.)
+  setPlan(plan: PlanTier) {
+    this.plan = plan;
+    this.pushState();
   }
 
   getState(): QueueState {
@@ -27,7 +39,30 @@ export class DownloadQueue {
     this.notify(this.getState());
   }
 
+  // NEW: what counts toward the queue limit
+  private queuedCount(): number {
+    return this.items.filter(
+      (i) => i.status === "pending" || i.status === "downloading",
+    ).length;
+  }
+
+  private queueLimit(): number {
+    return QUEUE_LIMITS[this.plan];
+  }
+
+  private assertCanAdd() {
+    const limit = this.queueLimit();
+    if (Number.isFinite(limit) && this.queuedCount() >= limit) {
+      throw new Error(
+        `Queue limit reached (${limit}). Upgrade to add more downloads.`,
+      );
+    }
+  }
+
   async add(url: string, options: DownloadOptions): Promise<DownloadItem> {
+    // NEW: enforce limit BEFORE adding
+    this.assertCanAdd();
+
     const item: DownloadItem = {
       id: randomUUID(),
       url,
@@ -50,6 +85,14 @@ export class DownloadQueue {
   }
 
   cancel(id: string) {
+    const item = this.items.find((i) => i.id === id);
+    if (!item) return;
+
+    // Mark canceled so the close handler doesn't mark it failed
+    item.status = "canceled";
+    item.finishedAt = new Date().toISOString();
+    this.pushState();
+
     if (this.activeId === id) {
       this.proc?.kill("SIGTERM");
     }
@@ -58,10 +101,50 @@ export class DownloadQueue {
   retry(id: string) {
     const item = this.items.find((i) => i.id === id);
     if (!item) return;
+
+    // NEW: enforce limit when retrying too (since it re-enters the queue)
+    // But don't block retrying the currently queued item if it is already counted.
+    // Easiest behavior: only enforce if it's currently NOT queued.
+    const isCurrentlyQueued =
+      item.status === "pending" || item.status === "downloading";
+
+    if (!isCurrentlyQueued) {
+      this.assertCanAdd();
+    }
+
     item.status = "pending";
     item.error = "";
+    item.startedAt = "";
+    item.finishedAt = "";
+    item.progress = { percent: 0 };
     this.pushState();
+
     if (!this.activeId) this.startNext();
+  }
+
+  remove(id: string) {
+    const idx = this.items.findIndex((i) => i.id === id);
+    if (idx === -1) return;
+
+    const item = this.items[idx];
+
+    // If removing the active download, cancel the process first.
+    if (this.activeId === id) {
+      item.status = "canceled";
+      item.finishedAt = new Date().toISOString();
+      this.pushState();
+
+      this.proc?.kill("SIGTERM");
+
+      // Remove immediately from list (UI feels snappy)
+      this.items.splice(idx, 1);
+      this.pushState();
+      return;
+    }
+
+    // Otherwise just remove it
+    this.items.splice(idx, 1);
+    this.pushState();
   }
 
   private startNext() {
@@ -94,7 +177,7 @@ export class DownloadQueue {
     if (item.options.embedThumbnail) args.push("--embed-thumbnail");
     if (!item.options.allowPlaylists) args.push("--no-playlist");
 
-    // ⭐️ NEW: capture exact final filepath
+    // capture exact final filepath
     args.push("--print", "after_move:%(filepath)s");
 
     this.proc = spawn(ytDlpPath(), args, { stdio: ["ignore", "pipe", "pipe"] });
@@ -114,7 +197,7 @@ export class DownloadQueue {
       for (const line of lines) {
         const trimmed = line.trim();
 
-        // ⭐️ NEW: yt-dlp prints full filepath here
+        // yt-dlp prints full filepath here
         if (
           trimmed &&
           (trimmed.startsWith("/") || /^[A-Za-z]:\\/.test(trimmed))
@@ -124,17 +207,7 @@ export class DownloadQueue {
           continue;
         }
 
-        // progress parsing (existing logic)
-        const m = trimmed.match(/(\d+(?:\.\d+)?)%/);
-        if (m) {
-          item.progress.percent = Number(m[1]);
-          this.pushState();
-        }
-
-        // keep your after_move filepath capture first (as you already added)
-
         // Parse yt-dlp download progress lines
-        // Example: "[download]  12.3% of 42.00MiB at 1.23MiB/s ETA 00:31"
         if (trimmed.startsWith("[download]")) {
           const percentMatch = trimmed.match(/(\d+(?:\.\d+)?)%/);
           const totalMatch = trimmed.match(/of\s+([^\s]+)\s+at/i);
@@ -148,6 +221,13 @@ export class DownloadQueue {
 
           this.pushState();
           continue;
+        }
+
+        // fallback percent parsing
+        const m = trimmed.match(/(\d+(?:\.\d+)?)%/);
+        if (m) {
+          item.progress.percent = Number(m[1]);
+          this.pushState();
         }
       }
     });

@@ -1,0 +1,22 @@
+:root {
+    /* Core neutrals */
+    --bg: #fff7f2;
+    --ink: #111111;
+    --muted: #3a3a3a;
+
+    /* Guava palette */
+    --guava: #ff4d7d;
+    --guava-soft: #ffd1dc;
+
+    --leaf: #26c281;
+    --leaf-soft: #c9f7e2;
+
+    /* Surfaces */
+    --card: #ffffff;
+    --border: #111111;
+
+    /* Neo-brutalist geometry */
+    --shadow-x: 8px;
+    --shadow-y: 8px;
+    --radius: 18px;
+}

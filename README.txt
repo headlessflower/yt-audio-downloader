@@ -1,8 +1,7 @@
-YT AUDIO DOWNLOADER
+Guava Music Vault
 ==================
 
-A simple, cross-platform desktop application for extracting audio from
-YouTube and similar platforms.
+Guava Music Vault is a desktop app for fetching, inspecting, and organizing audio and media files using user-supplied sources and third-party open-source tools.
 
 Built with Electron and Vue, and powered by yt-dlp and FFmpeg.
 
