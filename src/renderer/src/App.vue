@@ -130,7 +130,7 @@ async function addToQueue(payload: {
 
 /* App shell */
 .app {
-    min-height: 100vh;
+    height: 100vh;
     background: var(--bg);
     color: var(--ink);
     font-family:
@@ -233,11 +233,15 @@ async function addToQueue(payload: {
     grid-template-columns: 1fr 380px;
     gap: 16px;
     margin-top: 16px;
+    height: calc(100vh - 120px); /* adjust if your header padding differs */
+    min-height: 0;
 }
 
 .app__main {
     display: grid;
+    grid-template-rows: auto 1fr; /* AddDownload then QueueList */
     gap: 16px;
+    min-height: 0;
 }
 
 .app__aside {
@@ -284,7 +288,7 @@ async function addToQueue(payload: {
 }
 
 .panel__body {
-    padding: 14px 16px;
+    padding: 2rem;
 }
 
 /* Responsive */

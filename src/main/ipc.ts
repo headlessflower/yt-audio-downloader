@@ -21,14 +21,12 @@ export function registerIpc(queue: DownloadQueue) {
   ipcMain.handle("queue:get", () => queue.getState());
 
   ipcMain.handle("queue:add", (_e, url: string, options: DownloadOptions) => {
-    const settings = store.get("settings");
-    return queue.add(url, options, settings);
+    return queue.add(url, options);
   });
 
   ipcMain.handle("queue:cancel", (_e, id: string) => queue.cancel(id));
   ipcMain.handle("queue:remove", (_e, id: string) => queue.remove(id));
   ipcMain.handle("queue:retry", (_e, id: string) => {
-    const settings = store.get("settings");
     return queue.retry(id, settings);
   });
 

@@ -198,11 +198,17 @@ function onOpenFolder(path: string) {
     border: 3px solid var(--border);
     border-radius: var(--radius);
     box-shadow: var(--shadow-x) var(--shadow-y) 0 var(--ink);
-    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+
+    /* KEY: allow the scroll child to size correctly */
+    min-height: 0;
+    padding: 2rem;
 }
 
 .queue__header {
     display: flex;
+    flex: 0 0 auto;
     align-items: flex-start;
     justify-content: space-between;
     gap: 12px;
@@ -267,9 +273,31 @@ function onOpenFolder(path: string) {
 }
 
 .queue__body {
+    flex: 1 1 auto;
+    min-height: 0; /* KEY: required for flex scrolling */
+    overflow-y: auto;
+
     padding: 14px 16px 16px;
     display: grid;
     gap: 12px;
+
+    /* Optional: nicer scrollbar */
+    scrollbar-width: auto;
+    scrollbar-color: var(--ink) transparent;
+}
+
+.queue__body::-webkit-scrollbar {
+    width: 12px;
+}
+
+.queue__body::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.queue__body::-webkit-scrollbar-thumb {
+    background: var(--ink);
+    border-radius: 999px;
+    border: 3px solid var(--bg);
 }
 
 /* Empty state */
