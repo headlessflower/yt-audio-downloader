@@ -172,7 +172,7 @@ function onKeydown(e: KeyboardEvent) {
     position: absolute;
     width: 1px;
     height: 1px;
-    padding: 0;
+    padding: 0rem;
     margin: -1px;
     overflow: hidden;
     clip: rect(0, 0, 0, 0);
@@ -193,7 +193,7 @@ function onKeydown(e: KeyboardEvent) {
     align-items: flex-start;
     justify-content: space-between;
     gap: 12px;
-    padding: 14px 16px;
+    padding: 2rem;
     border-bottom: 3px solid var(--border);
     background:
         linear-gradient(0deg, #ffffff, #ffffff),
@@ -262,15 +262,15 @@ function onKeydown(e: KeyboardEvent) {
 
 /* Input */
 .add__input {
-    padding: 14px 16px 10px;
+    padding: 2rem;
 }
 
 .textarea {
-    width: 100%;
+    width: 90%;
     resize: vertical;
     min-height: 86px;
 
-    padding: 12px 12px;
+    padding: 2rem;
     border: 3px solid var(--border);
     border-radius: 14px;
     background: #fff;
@@ -311,6 +311,11 @@ function onKeydown(e: KeyboardEvent) {
     justify-content: space-between;
     gap: 12px;
     padding: 12px 16px 16px;
+}
+
+.add__clip {
+    border-radius: var(--radius);
+    overflow: hidden;
 }
 
 .controls {

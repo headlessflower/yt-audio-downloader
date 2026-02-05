@@ -38,7 +38,7 @@ function createWindow() {
 
   const w = new BrowserWindow({
     width: 1100,
-    height: 750,
+    height: 1100,
     webPreferences: {
       preload: preloadPath,
       contextIsolation: true,
