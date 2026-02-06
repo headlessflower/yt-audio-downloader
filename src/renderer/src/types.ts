@@ -5,7 +5,8 @@ export type DownloadStatus =
   | "downloading"
   | "completed"
   | "failed"
-  | "canceled";
+  | "canceled"
+  | "skipped";
 
 export type DownloadOptions = {
   outputDir: string;

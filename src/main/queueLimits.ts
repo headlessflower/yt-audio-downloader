@@ -1,7 +1,7 @@
 // queueLimits.ts
 export const QUEUE_LIMITS = {
   free: 15,
-  pro: 50, // example
+  pro: 100, // example
   unlimited: Infinity,
 } as const;
 

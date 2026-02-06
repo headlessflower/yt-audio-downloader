@@ -14,6 +14,7 @@ function statusLabel(item: DownloadItem) {
     if (item.status === "completed") return "Completed";
     if (item.status === "failed") return "Failed";
     if (item.status === "canceled") return "Canceled";
+    if (item.status === "skipped") return "Unavailable";
     return item.status;
 }
 
@@ -39,8 +40,21 @@ function onRemove(id: string) {
     requireApi()?.queue.remove(id);
 }
 
+function dirnameFromPath(p: string) {
+    // Handles:
+    // - /a/b/file.ext  -> /a/b
+    // - C:\a\b\file.ext -> C:\a\b
+    // - already-a-dir -> best effort (returns parent anyway if it ends with file)
+    if (!p) return p;
+    const normalized = p.replace(/\\/g, "/");
+    const i = normalized.lastIndexOf("/");
+    if (i <= 0) return p;
+    return normalized.slice(0, i);
+}
+
 function onOpenFolder(path: string) {
-    requireApi()?.shell.openPath(path);
+    const dir = dirnameFromPath(path);
+    requireApi()?.shell.openPath(dir);
 }
 </script>
 
@@ -140,8 +154,17 @@ function onOpenFolder(path: string) {
                     </div>
                 </div>
 
-                <div v-if="item.status === 'failed'" class="error" role="alert">
-                    <div class="error__label">Error</div>
+                <!-- UPDATED: show message for failed OR skipped -->
+                <div
+                    v-if="item.status === 'failed' || item.status === 'skipped'"
+                    class="error"
+                    role="alert"
+                >
+                    <div class="error__label">
+                        {{
+                            item.status === "skipped" ? "Unavailable" : "Error"
+                        }}
+                    </div>
                     <div class="error__msg">{{ item.error }}</div>
                 </div>
 
@@ -155,10 +178,12 @@ function onOpenFolder(path: string) {
                         Cancel
                     </button>
 
+                    <!-- UPDATED: retry for failed/canceled/skipped -->
                     <button
                         v-if="
                             item.status === 'failed' ||
-                            item.status === 'canceled'
+                            item.status === 'canceled' ||
+                            item.status === 'skipped'
                         "
                         class="btn btn--leaf"
                         type="button"
@@ -191,8 +216,6 @@ function onOpenFolder(path: string) {
 </template>
 
 <style scoped>
-/* Queue shell */
-
 .queue {
     background: var(--card);
     border: 3px solid var(--border);
@@ -276,6 +299,7 @@ function onOpenFolder(path: string) {
     flex: 1 1 auto;
     min-height: 0; /* KEY: required for flex scrolling */
     overflow-y: auto;
+    overflow-x: hidden;
 
     padding: 14px 16px 16px;
     display: grid;
@@ -332,6 +356,7 @@ function onOpenFolder(path: string) {
     background: #fff;
     box-shadow: 6px 6px 0 var(--ink);
     padding: 12px 12px;
+    min-width: 0;
 }
 
 .item__top {
@@ -351,6 +376,7 @@ function onOpenFolder(path: string) {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    min-width: 0;
 }
 
 .item__url {
@@ -361,6 +387,7 @@ function onOpenFolder(path: string) {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    min-width: 0;
 }
 
 .item__right {
@@ -554,5 +581,71 @@ function onOpenFolder(path: string) {
     .item__actions .btn {
         width: 100%;
     }
+}
+
+/* Status badge */
+.badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 10px;
+    border: 3px solid var(--border);
+    border-radius: 999px;
+    box-shadow: 4px 4px 0 var(--ink);
+    font-size: 11px;
+    font-weight: 950;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    background: #fff;
+}
+
+.badge::before {
+    content: "";
+    width: 10px;
+    height: 10px;
+    border: 2px solid var(--border);
+    border-radius: 999px;
+    background: var(--guava);
+}
+
+/* FIXED: your status is "pending", not "queued" */
+.badge[data-status="pending"]::before {
+    background: var(--guava);
+}
+.badge[data-status="downloading"]::before {
+    background: var(--leaf);
+}
+.badge[data-status="completed"]::before {
+    background: var(--leaf);
+}
+.badge[data-status="failed"]::before {
+    background: var(--guava);
+}
+.badge[data-status="canceled"]::before {
+    background: #bbb;
+}
+.badge[data-status="skipped"]::before {
+    background: #bbb;
+}
+
+/* Progress fill */
+.item[data-status="completed"] .bar__fill {
+    background: var(--leaf);
+}
+.item[data-status="failed"] .bar__fill {
+    background: var(--guava);
+}
+.item[data-status="canceled"] .bar__fill {
+    background: #bbb;
+}
+/* NEW: skipped looks neutral */
+.item[data-status="skipped"] .bar__fill {
+    background: #bbb;
+}
+
+/* If you want skipped to look less like an "error" block,
+   you can optionally override the error background: */
+.item[data-status="skipped"] .error {
+    background: #fff;
 }
 </style>

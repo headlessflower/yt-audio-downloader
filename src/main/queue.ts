@@ -9,6 +9,18 @@ import type {
 
 import { QUEUE_LIMITS, type PlanTier } from "./queueLimits";
 
+const LOCATION_ERRORS = [
+  "not available in your country",
+  "not available in your region",
+  "video unavailable",
+  "this video is unavailable",
+  "has not made this video available",
+  "the uploader has not made this video available",
+  "geo-restricted",
+  "sign in to confirm your age",
+  "age-restricted",
+];
+
 type UpdateFn = (state: QueueState) => void;
 
 export class DownloadQueue {
@@ -103,8 +115,6 @@ export class DownloadQueue {
     if (!item) return;
 
     // NEW: enforce limit when retrying too (since it re-enters the queue)
-    // But don't block retrying the currently queued item if it is already counted.
-    // Easiest behavior: only enforce if it's currently NOT queued.
     const isCurrentlyQueued =
       item.status === "pending" || item.status === "downloading";
 
@@ -186,6 +196,26 @@ export class DownloadQueue {
     let stdoutBuf = "";
     let stderrBuf = "";
 
+    // NEW: prevent double-fail / overwritten error on close
+    let terminatedEarly = false;
+
+    const failActiveItem = (friendlyMessage: string) => {
+      if (terminatedEarly) return;
+      terminatedEarly = true;
+
+      // Only fail if it’s still the active download and not already canceled
+      if (item.status === "canceled") return;
+
+      item.status = "failed";
+      item.error = friendlyMessage;
+      item.finishedAt = new Date().toISOString();
+
+      this.pushState();
+
+      // Kill the process; close handler will fire, but we’ll avoid overwriting
+      proc.kill("SIGKILL");
+    };
+
     proc.stdout.setEncoding("utf8");
     proc.stderr.setEncoding("utf8");
 
@@ -232,13 +262,30 @@ export class DownloadQueue {
       }
     });
 
+    // UPDATED: detect geo/hidden errors early and advance queue
     proc.stderr.on("data", (chunk: string) => {
       stderrBuf += chunk;
+
+      const lower = stderrBuf.toLowerCase();
+      if (LOCATION_ERRORS.some((s) => lower.includes(s))) {
+        failActiveItem("Unavailable in your location (geo-restricted/hidden).");
+      }
     });
 
     proc.on("close", (code) => {
       this.proc = null;
       this.activeId = null;
+
+      // If we already failed early (and set a friendly message), don’t overwrite it.
+      if (terminatedEarly) {
+        // If user canceled after we started terminating, keep canceled
+        if (item.status !== "canceled" && !item.finishedAt) {
+          item.finishedAt = new Date().toISOString();
+        }
+        this.pushState();
+        this.startNext();
+        return;
+      }
 
       if (code === 0) {
         item.status = "completed";
