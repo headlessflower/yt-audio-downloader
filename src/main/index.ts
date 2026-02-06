@@ -64,7 +64,7 @@ app.whenReady().then(() => {
     store.set("settings", { ...settings, outputDir: app.getPath("music") });
   }
 
-  // ✅ Register IPC handlers BEFORE renderer starts invoking them
+  // Register IPC handlers BEFORE renderer starts invoking them
   registerIpc(queue);
 
   win = createWindow();
