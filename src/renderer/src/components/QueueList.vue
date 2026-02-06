@@ -225,7 +225,7 @@ function onOpenFolder(path: string) {
     flex-direction: column;
 
     /* KEY: allow the scroll child to size correctly */
-    min-height: 0;
+    height: 100%;
     padding: 2rem;
 }
 

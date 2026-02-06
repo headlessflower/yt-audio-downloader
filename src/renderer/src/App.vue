@@ -120,15 +120,6 @@ async function addToQueue(payload: {
 </template>
 
 <style scoped>
-/* -------------------------------------------------------
-   Neo-brutalist theme (Guava palette)
-   - thick borders
-   - hard shadows
-   - loud accent colors
-   - simple typography
--------------------------------------------------------- */
-
-/* App shell */
 .app {
     height: 100vh;
     background: var(--bg);
@@ -234,7 +225,7 @@ async function addToQueue(payload: {
     gap: 16px;
     margin-top: 16px;
     height: calc(100vh - 120px); /* adjust if your header padding differs */
-    min-height: 0;
+    min-height: 100%;
 }
 
 .app__main {
@@ -255,7 +246,8 @@ async function addToQueue(payload: {
     border: 3px solid var(--border);
     border-radius: var(--radius);
     box-shadow: var(--shadow-x) var(--shadow-y) 0 var(--ink);
-    overflow: hidden;
+    overflow-y: auto;
+height: 100%;
 }
 
 /* Sticky settings on desktop */
@@ -289,6 +281,7 @@ async function addToQueue(payload: {
 
 .panel__body {
     padding: 2rem;
+  min-height: 0;
 }
 
 /* Responsive */

@@ -1,7 +1,7 @@
 {
   "name": "yt-audio-downloader",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.3.0",
   "main": "dist/main/index.js",
   "type": "module",
   "scripts": {
@@ -34,6 +34,11 @@
   "build": {
     "appId": "com.headlessflower.ytaudiodownloader",
     "productName": "Guava Music Vault",
+
+    "win": {
+      "icon": "build/icon.ico"
+    },
+
     "files": [
       "dist/**"
     ],
@@ -55,7 +60,8 @@
       ],
       "category": "public.app-category.music",
       "hardenedRuntime": true,
-      "gatekeeperAssess": false
+      "gatekeeperAssess": false,
+      "icon": "build/icon.icns"
     },
     "dmg": {
       "contents": [
@@ -75,7 +81,8 @@
       "target": [
         "AppImage"
       ],
-      "category": "AudioVideo"
+      "category": "AudioVideo",
+      "icon": "build/icon.png"
     }
   }
 }
