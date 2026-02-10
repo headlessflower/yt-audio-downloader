@@ -14,6 +14,8 @@ const settings = ref<Settings>({
     allowPlaylists: false,
 });
 
+const theme = ref<"dark" | "light">("dark");
+
 let unsub: null | (() => void) = null;
 
 function hasApi(): boolean {
@@ -120,10 +122,18 @@ async function addToQueue(payload: {
 </template>
 
 <style scoped>
+/* GNOME-ish dark shell (replaces neo-brutalist look)
+   - Flat surfaces, subtle 1px separators
+   - Airy spacing + readable type
+   - Responsive units (rem/em/vh/vw); 1px borders only px exception
+   - Assumes your dark theme tokens:
+     --bg, --surface, --text, --muted, --accent, --border, --radius
+*/
+
 .app {
-    height: 100vh;
+    min-height: 100vh;
     background: var(--bg);
-    color: var(--ink);
+    color: var(--text);
     font-family:
         ui-sans-serif,
         system-ui,
@@ -133,47 +143,49 @@ async function addToQueue(payload: {
         Arial,
         "Apple Color Emoji",
         "Segoe UI Emoji";
-    padding: 18px;
+
+    padding: 1.125rem;
 }
 
 /* Constrain width but keep it roomy */
 .app__header,
 .app__layout {
-    max-width: 1160px;
-    margin: 0 auto;
+    max-width: 72.5rem; /* ~1160px */
+    margin-inline: auto;
 }
 
-/* Header */
+/* Header (GNOME headerbar-ish) */
 .app__header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 14px;
+    gap: 0.875rem;
 
-    background: var(--card);
-    border: 3px solid var(--border);
+    background: var(--surface);
+    border: 1px solid var(--border);
     border-radius: var(--radius);
-    box-shadow: var(--shadow-x) var(--shadow-y) 0 var(--ink);
-    padding: 14px 16px;
+
+    padding: 0.875rem 1rem;
 }
 
 /* Brand cluster */
 .brand {
     display: flex;
     align-items: center;
-    gap: 14px;
+    gap: 0.875rem;
     min-width: 0;
 }
 
 .brand__logo {
-    width: 56px;
-    height: 56px;
+    inline-size: 3rem;
+    block-size: 3rem;
     object-fit: contain;
-    background: #fff;
-    border: 3px solid var(--border);
-    border-radius: 14px;
-    box-shadow: 5px 5px 0 var(--ink);
-    padding: 8px;
+
+    /* GNOME-ish: no framed badge, just a quiet surface */
+    background: transparent;
+    border: 0;
+    border-radius: calc(var(--radius) * 0.8);
+    padding: 0.25rem;
 }
 
 .brand__text {
@@ -182,112 +194,128 @@ async function addToQueue(payload: {
 
 .brand__title {
     margin: 0;
-    font-size: 22px;
-    letter-spacing: -0.02em;
-    line-height: 1.1;
+    font-size: 1.125rem;
+    font-weight: 650;
+    letter-spacing: 0.01em;
+    line-height: 1.2;
+    color: var(--text);
 }
 
 .brand__tagline {
-    margin: 6px 0 0;
+    margin: 0.25rem 0 0;
     color: var(--muted);
-    font-weight: 600;
-    font-size: 13px;
+    font-weight: 500;
+    font-size: 0.875rem;
+    line-height: 1.35;
 }
 
-/* Right side status chip */
+/* Right side status cluster */
 .status {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 0.625rem;
 }
 
+/* GNOME-ish chip: subtle, not shouty */
 .status__chip {
     display: inline-flex;
     align-items: center;
-    gap: 8px;
+    gap: 0.5rem;
 
-    border: 3px solid var(--border);
-    border-radius: 999px;
-    padding: 8px 12px;
+    border: 1px solid var(--border);
+    border-radius: 999rem;
+    padding: 0.5rem 0.75rem;
 
-    background: linear-gradient(0deg, var(--guava-soft), var(--guava-soft));
-    font-weight: 800;
-    font-size: 12px;
-    text-transform: uppercase;
+    background: color-mix(in srgb, var(--surface) 92%, var(--text) 8%);
+    color: var(--text);
+
+    font-weight: 600;
+    font-size: 0.75rem;
     letter-spacing: 0.08em;
-    box-shadow: 5px 5px 0 var(--ink);
+    text-transform: uppercase;
 }
 
 /* Layout */
 .app__layout {
     display: grid;
-    grid-template-columns: 1fr 380px;
-    gap: 16px;
-    margin-top: 16px;
-    height: calc(100vh - 120px); /* adjust if your header padding differs */
-    min-height: 100%;
+    grid-template-columns: 1fr minmax(18rem, 23.75rem); /* ~380px max */
+    gap: 1rem;
+
+    margin-top: 1rem;
+
+    /* keeps content from fighting the viewport while staying responsive */
+    min-height: calc(100vh - 6.5rem);
 }
 
 .app__main {
     display: grid;
     grid-template-rows: auto 1fr; /* AddDownload then QueueList */
-    gap: 16px;
+    gap: 1rem;
     min-height: 0;
 }
 
 .app__aside {
     display: grid;
-    gap: 16px;
+    gap: 1rem;
+    min-height: 0;
 }
 
-/* Panels (neo-brutalist cards) */
+/* Panels (GNOME surfaces) */
 .panel {
-    background: var(--card);
-    border: 3px solid var(--border);
+    background: var(--surface);
+    border: 1px solid var(--border);
     border-radius: var(--radius);
-    box-shadow: var(--shadow-x) var(--shadow-y) 0 var(--ink);
-    overflow-y: auto;
-height: 100%;
+
+    overflow: clip;
+    min-height: 0;
+}
+
+/* Scroll lives inside the body to keep headers stable */
+.panel__body {
+    padding: 1.25rem;
+    overflow: auto;
+    min-height: 0;
 }
 
 /* Sticky settings on desktop */
 .panel--sticky {
     position: sticky;
-    top: 16px;
+    top: 1rem;
 }
 
+/* Panel header */
 .panel__header {
-    padding: 14px 16px;
-    border-bottom: 3px solid var(--border);
-    background:
-        linear-gradient(0deg, #ffffff, #ffffff),
-        linear-gradient(90deg, var(--leaf-soft), var(--guava-soft));
-    background-blend-mode: normal, multiply;
+    padding: 0.875rem 1rem;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
 }
 
 .panel__title {
     margin: 0;
-    font-size: 16px;
-    font-weight: 900;
-    letter-spacing: -0.01em;
+    font-size: 0.9375rem;
+    font-weight: 650;
+    letter-spacing: 0.01em;
+    color: var(--text);
 }
 
 .panel__hint {
-    margin: 6px 0 0;
-    font-size: 12px;
+    margin: 0.25rem 0 0;
+    font-size: 0.875rem;
     color: var(--muted);
-    font-weight: 600;
-}
-
-.panel__body {
-    padding: 2rem;
-  min-height: 0;
+    font-weight: 500;
+    line-height: 1.35;
 }
 
 /* Responsive */
-@media (max-width: 980px) {
+@media (max-width: 61.25rem) {
+    /* ~980px */
+    .app {
+        padding: 1rem;
+    }
+
     .app__layout {
         grid-template-columns: 1fr;
+        min-height: auto;
     }
 
     .panel--sticky {
@@ -296,6 +324,14 @@ height: 100%;
 
     .status__chip {
         display: none;
+    }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+    * {
+        transition: none !important;
+        scroll-behavior: auto !important;
     }
 }
 </style>

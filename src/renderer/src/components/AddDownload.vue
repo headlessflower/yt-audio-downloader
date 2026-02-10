@@ -168,140 +168,165 @@ function onKeydown(e: KeyboardEvent) {
 <style scoped>
 /* Uses the same palette as App.vue (via :root). If variables are not global,
    consider moving them to a global stylesheet (e.g., assets/theme.css). */
+/* Screen-reader only */
 .sr-only {
     position: absolute;
-    width: 1px;
-    height: 1px;
-    padding: 0rem;
+    inline-size: 1px;
+    block-size: 1px;
+    padding: 0;
     margin: -1px;
     overflow: hidden;
-    clip: rect(0, 0, 0, 0);
+    clip-path: inset(50%);
     white-space: nowrap;
     border: 0;
 }
 
+/* Local tokens (derived from globals) */
 .add {
-    background: var(--card);
-    border: 3px solid var(--border);
+    --pad: 1rem;
+    --pad-lg: 1.25rem;
+    --ring: color-mix(in srgb, var(--accent) 55%, transparent);
+    --surface-2: color-mix(in srgb, var(--surface) 92%, var(--text) 8%);
+
+    background: var(--surface);
+    border: 1px solid var(--border);
     border-radius: var(--radius);
-    box-shadow: var(--shadow-x) var(--shadow-y) 0 var(--ink);
-    overflow: hidden;
+    overflow: clip;
 }
 
+/* Header / top area */
 .add__top {
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
-    gap: 12px;
-    padding: 2rem;
-    border-bottom: 3px solid var(--border);
-    background:
-        linear-gradient(0deg, #ffffff, #ffffff),
-        linear-gradient(90deg, var(--leaf-soft), var(--guava-soft));
-    background-blend-mode: normal, multiply;
+    gap: 1rem;
+
+    padding: var(--pad-lg);
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
 }
 
 .add__title {
     margin: 0;
-    font-size: 16px;
-    font-weight: 900;
-    letter-spacing: -0.01em;
+    font-size: 1rem;
+    font-weight: 650;
+    letter-spacing: 0.01em;
+    color: var(--text);
 }
 
 .add__hint {
-    margin: 6px 0 0;
-    font-size: 12px;
+    margin: 0.375rem 0 0;
+    font-size: 0.875rem;
     color: var(--muted);
-    font-weight: 600;
+    font-weight: 500;
+    line-height: 1.35;
 }
 
+/* Small keyboard hint */
 .kbd {
-    display: inline-block;
-    padding: 2px 6px;
-    border: 2px solid var(--border);
-    border-radius: 8px;
-    background: #fff;
-    box-shadow: 3px 3px 0 var(--ink);
-    font-weight: 900;
-    font-size: 11px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    padding: 0.125rem 0.5rem;
+    border: 1px solid var(--border);
+    border-radius: 0.5rem;
+
+    background: var(--surface-2);
+    color: var(--text);
+
+    font-weight: 600;
+    font-size: 0.8125rem;
     line-height: 1.2;
-    margin-right: 2px;
 }
 
-/* pill */
+/* Status pill (quiet) */
 .pill {
     display: inline-flex;
     align-items: center;
-    gap: 8px;
-    border: 3px solid var(--border);
-    border-radius: 999px;
-    padding: 8px 12px;
-    background: #fff;
-    box-shadow: 5px 5px 0 var(--ink);
+    gap: 0.5rem;
+
+    border: 1px solid var(--border);
+    border-radius: 999rem;
+    padding: 0.5rem 0.75rem;
+
+    background: var(--surface-2);
+    color: var(--text);
+
     user-select: none;
     flex: 0 0 auto;
 }
 
 .pill__dot {
-    width: 10px;
-    height: 10px;
-    border: 2px solid var(--border);
-    border-radius: 999px;
-    background: var(--guava);
+    inline-size: 0.5rem;
+    block-size: 0.5rem;
+    border-radius: 999rem;
+    background: var(--accent);
 }
 
 .pill[data-tone="good"] .pill__dot {
-    background: var(--leaf);
+    background: color-mix(in srgb, var(--accent) 55%, #22c55e 45%);
 }
 
 .pill__text {
-    font-weight: 900;
-    font-size: 12px;
-    letter-spacing: 0.02em;
+    font-weight: 600;
+    font-size: 0.875rem;
+    letter-spacing: 0.01em;
 }
 
-/* Input */
+/* Input section */
 .add__input {
-    padding: 2rem;
+    padding: var(--pad-lg);
 }
 
+/* Textarea — GNOME style: surface + focus ring */
 .textarea {
-    width: 90%;
+    inline-size: 100%;
     resize: vertical;
-    min-height: 86px;
+    min-block-size: 6.25rem;
 
-    padding: 2rem;
-    border: 3px solid var(--border);
-    border-radius: 14px;
-    background: #fff;
-    color: var(--ink);
+    padding: 0.875rem 1rem;
+    border: 1px solid var(--border);
+    border-radius: calc(var(--radius) * 0.9);
+
+    background: var(--surface-2);
+    color: var(--text);
 
     font: inherit;
-    font-weight: 650;
-    line-height: 1.35;
+    font-weight: 500;
+    line-height: 1.4;
 
-    box-shadow: 6px 6px 0 var(--ink);
     outline: none;
+    transition:
+        border-color 120ms ease,
+        box-shadow 120ms ease,
+        background 120ms ease;
 }
 
 .textarea::placeholder {
-    color: #5a5a5a;
-    font-weight: 650;
+    color: color-mix(in srgb, var(--muted) 85%, transparent);
+    font-weight: 450;
 }
 
 .textarea:focus {
-    transform: translate(-1px, -1px);
-    box-shadow: 8px 8px 0 var(--ink);
+    border-color: color-mix(in srgb, var(--accent) 55%, var(--border));
+    box-shadow: 0 0 0 0.2rem var(--ring);
+    background: color-mix(in srgb, var(--surface) 88%, var(--text) 12%);
 }
 
+/* Error — calm but clear */
 .error {
-    margin: 10px 0 0;
-    padding: 10px 12px;
-    border: 3px solid var(--border);
-    border-radius: 14px;
-    background: var(--guava-soft);
-    box-shadow: 6px 6px 0 var(--ink);
-    font-weight: 800;
+    margin: 0.75rem 0 0;
+    padding: 0.75rem 1rem;
+
+    border: 1px solid var(--danger-border);
+    border-radius: calc(var(--radius) * 0.9);
+
+    background: var(--danger-bg);
+    color: var(--text);
+
+    font-weight: 600;
+    line-height: 1.35;
 }
 
 /* Controls row */
@@ -309,151 +334,168 @@ function onKeydown(e: KeyboardEvent) {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 12px;
-    padding: 12px 16px 16px;
+    gap: 1rem;
+
+    padding: 0.75rem 1.25rem 1.25rem;
+    border-top: 1px solid transparent; /* keeps spacing consistent in some layouts */
 }
 
 .add__clip {
-    border-radius: var(--radius);
-    overflow: hidden;
+    border-radius: calc(var(--radius) * 0.9);
+    overflow: clip;
 }
 
 .controls {
     display: flex;
     flex-wrap: wrap;
-    gap: 10px 14px;
-    align-items: center;
+    gap: 0.75rem 1rem;
+    align-items: end;
 }
 
-/* Format field */
+/* Field */
 .field {
     display: grid;
-    gap: 6px;
-    margin-right: 4px;
+    gap: 0.375rem;
 }
 
 .field__label {
-    font-size: 12px;
-    font-weight: 900;
+    font-size: 0.75rem;
+    font-weight: 650;
     color: var(--muted);
-    letter-spacing: 0.02em;
+    letter-spacing: 0.08em;
     text-transform: uppercase;
 }
 
+/* Select — quiet, readable, proper focus */
 .select {
     appearance: none;
-    padding: 10px 34px 10px 12px;
-    border: 3px solid var(--border);
-    border-radius: 14px;
-    background: #fff;
-    color: var(--ink);
+    inline-size: max-content;
+
+    padding: 0.625rem 2.25rem 0.625rem 0.875rem;
+    border: 1px solid var(--border);
+    border-radius: calc(var(--radius) * 0.9);
+
+    background: var(--surface-2);
+    color: var(--text);
+
     font: inherit;
-    font-weight: 800;
-    box-shadow: 6px 6px 0 var(--ink);
+    font-weight: 550;
+
     outline: none;
-    position: relative;
+    transition:
+        border-color 120ms ease,
+        box-shadow 120ms ease,
+        background 120ms ease;
 }
 
 /* simple caret */
 .select {
     background-image:
-        linear-gradient(45deg, transparent 50%, var(--ink) 50%),
-        linear-gradient(135deg, var(--ink) 50%, transparent 50%),
-        linear-gradient(to right, transparent, transparent);
+        linear-gradient(45deg, transparent 50%, var(--text) 50%),
+        linear-gradient(135deg, var(--text) 50%, transparent 50%);
     background-position:
-        calc(100% - 18px) 55%,
-        calc(100% - 12px) 55%,
-        0 0;
+        calc(100% - 1.15rem) 55%,
+        calc(100% - 0.85rem) 55%;
     background-size:
-        6px 6px,
-        6px 6px,
-        100% 100%;
+        0.4rem 0.4rem,
+        0.4rem 0.4rem;
     background-repeat: no-repeat;
 }
 
 .select:focus {
-    transform: translate(-1px, -1px);
-    box-shadow: 8px 8px 0 var(--ink);
+    border-color: color-mix(in srgb, var(--accent) 55%, var(--border));
+    box-shadow: 0 0 0 0.2rem var(--ring);
+    background: color-mix(in srgb, var(--surface) 88%, var(--text) 12%);
 }
 
-/* Checkboxes */
+/* Checkbox row — let the platform handle most visuals */
 .check {
     display: inline-flex;
     align-items: center;
-    gap: 10px;
-    font-weight: 800;
-    color: var(--ink);
+    gap: 0.625rem;
+
+    font-weight: 550;
+    color: var(--text);
     user-select: none;
 }
 
 .check__box {
-    width: 18px;
-    height: 18px;
+    inline-size: 1.1rem;
+    block-size: 1.1rem;
     margin: 0;
-    accent-color: var(--leaf);
+    accent-color: var(--accent);
 }
 
 .check__text {
-    font-size: 13px;
-    font-weight: 800;
+    font-size: 0.875rem;
 }
 
-/* Button */
+/* Primary button — GNOME-ish: calm fill, subtle hover */
 .btn {
     display: inline-flex;
     align-items: center;
-    gap: 10px;
+    gap: 0.625rem;
 
-    padding: 12px 14px;
-    border: 3px solid var(--border);
-    border-radius: 14px;
+    padding: 0.75rem 1rem;
+    border: 1px solid color-mix(in srgb, var(--accent) 55%, var(--border));
+    border-radius: calc(var(--radius) * 0.9);
 
-    background: linear-gradient(0deg, var(--guava), var(--guava));
-    color: #111;
+    background: color-mix(in srgb, var(--accent) 20%, var(--surface));
+    color: var(--text);
 
-    font-weight: 950;
-    letter-spacing: -0.01em;
+    font-weight: 650;
+    letter-spacing: 0.01em;
+
     cursor: pointer;
-
-    box-shadow: 7px 7px 0 var(--ink);
     transition:
-        transform 120ms ease,
-        box-shadow 120ms ease;
+        background 120ms ease,
+        border-color 120ms ease,
+        box-shadow 120ms ease,
+        transform 120ms ease;
     flex: 0 0 auto;
 }
 
 .btn__icon {
-    width: 24px;
-    height: 24px;
+    inline-size: 1.5rem;
+    block-size: 1.5rem;
     display: grid;
     place-items: center;
 
-    border: 2px solid var(--border);
-    border-radius: 10px;
-    background: #fff;
-    box-shadow: 3px 3px 0 var(--ink);
-    font-weight: 1000;
+    border-radius: 0.6rem;
+    background: color-mix(in srgb, var(--surface) 82%, var(--text) 18%);
+    color: var(--text);
+
+    font-weight: 700;
+    font-size: 0.95em;
 }
 
 .btn:hover {
-    transform: translate(-1px, -1px);
-    box-shadow: 9px 9px 0 var(--ink);
+    background: color-mix(in srgb, var(--accent) 26%, var(--surface));
 }
 
 .btn:active {
-    transform: translate(2px, 2px);
-    box-shadow: 4px 4px 0 var(--ink);
+    transform: translateY(0.06rem);
 }
 
-@media (max-width: 720px) {
+.btn:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 0.2rem var(--ring);
+}
+
+/* Responsive: stack controls on narrow widths */
+@media (max-width: 45rem) {
     .add__controls {
         flex-direction: column;
         align-items: stretch;
     }
 
     .btn {
-        width: 100%;
+        inline-size: 100%;
         justify-content: center;
+    }
+
+    .select {
+        inline-size: 100%;
     }
 }
 </style>

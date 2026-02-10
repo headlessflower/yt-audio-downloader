@@ -216,102 +216,124 @@ function onOpenFolder(path: string) {
 </template>
 
 <style scoped>
+/* GNOME-ish dark-only Queue
+   - Flat surfaces, subtle separators, calm focus rings
+   - Responsive units (rem/em/vw/vh); 1px borders are the only px exception
+   - Assumes dark theme tokens: --bg --surface --text --muted --accent --border --radius
+*/
+
 .queue {
-    background: var(--card);
-    border: 3px solid var(--border);
+    --pad: 1.25rem;
+    --pad-sm: 1rem;
+    --gap: 0.75rem;
+
+    --surface-2: color-mix(in srgb, var(--surface) 92%, var(--text) 8%);
+    --surface-3: color-mix(in srgb, var(--surface) 86%, var(--text) 14%);
+    --ring: color-mix(in srgb, var(--accent) 55%, transparent);
+
+    background: var(--surface);
+    border: 1px solid var(--border);
     border-radius: var(--radius);
-    box-shadow: var(--shadow-x) var(--shadow-y) 0 var(--ink);
+
     display: flex;
     flex-direction: column;
 
-    /* KEY: allow the scroll child to size correctly */
     height: 100%;
-    padding: 2rem;
+    min-height: 0;
+    overflow: clip;
 }
 
+/* Header */
 .queue__header {
     display: flex;
     flex: 0 0 auto;
     align-items: flex-start;
     justify-content: space-between;
-    gap: 12px;
-    padding: 14px 16px;
-    border-bottom: 3px solid var(--border);
-    background:
-        linear-gradient(0deg, #ffffff, #ffffff),
-        linear-gradient(90deg, var(--leaf-soft), var(--guava-soft));
-    background-blend-mode: normal, multiply;
+    gap: 1rem;
+
+    padding: var(--pad-sm) var(--pad);
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
 }
 
 .queue__title {
     margin: 0;
-    font-size: 16px;
-    font-weight: 900;
-    letter-spacing: -0.01em;
+    font-size: 0.9375rem;
+    font-weight: 650;
+    letter-spacing: 0.01em;
+    color: var(--text);
 }
 
 .queue__hint {
-    margin: 6px 0 0;
-    font-size: 12px;
+    margin: 0.25rem 0 0;
+    font-size: 0.875rem;
     color: var(--muted);
-    font-weight: 600;
+    font-weight: 500;
+    line-height: 1.35;
 }
 
 .queue__meta {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 0.625rem;
 }
 
-/* Pill matches AddDownload */
+/* GNOME-ish pill */
 .pill {
     display: inline-flex;
     align-items: center;
-    gap: 8px;
-    border: 3px solid var(--border);
-    border-radius: 999px;
-    padding: 8px 12px;
-    background: #fff;
-    box-shadow: 5px 5px 0 var(--ink);
+    gap: 0.5rem;
+
+    border: 1px solid var(--border);
+    border-radius: 999rem;
+    padding: 0.5rem 0.75rem;
+
+    background: var(--surface-2);
+    color: var(--text);
+
     user-select: none;
     flex: 0 0 auto;
+
+    font-weight: 600;
+    font-size: 0.75rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
 }
 
 .pill__dot {
-    width: 10px;
-    height: 10px;
-    border: 2px solid var(--border);
-    border-radius: 999px;
-    background: var(--guava);
+    inline-size: 0.5rem;
+    block-size: 0.5rem;
+    border-radius: 999rem;
+    background: var(--accent);
 }
 
 .pill[data-tone="good"] .pill__dot {
-    background: var(--leaf);
+    background: color-mix(in srgb, var(--accent) 45%, #22c55e 55%);
 }
 
 .pill__text {
-    font-weight: 900;
-    font-size: 12px;
-    letter-spacing: 0.02em;
+    font-weight: 650;
+    font-size: 0.75rem;
+    letter-spacing: 0.08em;
 }
 
+/* Body (scroll region) */
 .queue__body {
     flex: 1 1 auto;
-    min-height: 0; /* KEY: required for flex scrolling */
-    overflow-y: auto;
-    overflow-x: hidden;
+    min-height: 0;
+    overflow: auto;
 
-    padding: 14px 16px 16px;
+    padding: var(--pad-sm) var(--pad);
     display: grid;
-    gap: 12px;
+    gap: var(--gap);
 
-    /* Optional: nicer scrollbar */
-    scrollbar-width: auto;
-    scrollbar-color: var(--ink) transparent;
+    scrollbar-width: thin;
+    scrollbar-color: color-mix(in srgb, var(--text) 35%, transparent)
+        transparent;
 }
 
 .queue__body::-webkit-scrollbar {
-    width: 12px;
+    width: 0.75rem;
 }
 
 .queue__body::-webkit-scrollbar-track {
@@ -319,50 +341,56 @@ function onOpenFolder(path: string) {
 }
 
 .queue__body::-webkit-scrollbar-thumb {
-    background: var(--ink);
-    border-radius: 999px;
-    border: 3px solid var(--bg);
+    background: color-mix(in srgb, var(--text) 30%, transparent);
+    border-radius: 999rem;
+    border: 0.2rem solid transparent;
+    background-clip: padding-box;
 }
 
 /* Empty state */
 .empty {
-    padding: 2px 0 6px;
+    padding: 0.25rem 0;
 }
 
 .empty__box {
-    border: 3px solid var(--border);
-    border-radius: 16px;
-    background: #fff;
-    box-shadow: 6px 6px 0 var(--ink);
-    padding: 14px 14px;
+    border: 1px solid var(--border);
+    border-radius: calc(var(--radius) * 0.9);
+    background: var(--surface-2);
+    padding: 1rem;
 }
 
 .empty__title {
-    font-weight: 950;
-    letter-spacing: -0.01em;
+    font-weight: 650;
+    letter-spacing: 0.01em;
+    color: var(--text);
 }
 
 .empty__text {
-    margin-top: 6px;
-    font-size: 12px;
-    font-weight: 650;
+    margin-top: 0.25rem;
+    font-size: 0.875rem;
+    font-weight: 500;
     color: var(--muted);
+    line-height: 1.35;
 }
 
 /* Item card */
 .item {
-    border: 3px solid var(--border);
-    border-radius: 16px;
-    background: #fff;
-    box-shadow: 6px 6px 0 var(--ink);
-    padding: 12px 12px;
+    border: 1px solid var(--border);
+    border-radius: calc(var(--radius) * 0.9);
+    background: var(--surface-2);
+    padding: 0.875rem 1rem;
     min-width: 0;
+}
+
+/* Optional selection/hover affordance (quiet) */
+.item:hover {
+    background: color-mix(in srgb, var(--surface-2) 88%, var(--text) 12%);
 }
 
 .item__top {
     display: flex;
     justify-content: space-between;
-    gap: 12px;
+    gap: 1rem;
     align-items: flex-start;
 }
 
@@ -371,18 +399,19 @@ function onOpenFolder(path: string) {
 }
 
 .item__title {
-    font-weight: 950;
-    letter-spacing: -0.01em;
+    font-weight: 650;
+    letter-spacing: 0.01em;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
     min-width: 0;
+    color: var(--text);
 }
 
 .item__url {
-    margin-top: 4px;
-    font-size: 12px;
-    font-weight: 650;
+    margin-top: 0.25rem;
+    font-size: 0.875rem;
+    font-weight: 500;
     color: var(--muted);
     white-space: nowrap;
     overflow: hidden;
@@ -395,170 +424,190 @@ function onOpenFolder(path: string) {
     flex: 0 0 auto;
     display: grid;
     justify-items: end;
-    gap: 6px;
+    gap: 0.375rem;
 }
 
 .item__sub {
-    font-size: 12px;
-    font-weight: 700;
+    font-size: 0.875rem;
+    font-weight: 500;
     color: var(--muted);
 }
 
-/* Status badge */
+/* Status badge (quiet) */
 .badge {
     display: inline-flex;
     align-items: center;
-    gap: 8px;
-    padding: 6px 10px;
-    border: 3px solid var(--border);
-    border-radius: 999px;
-    box-shadow: 4px 4px 0 var(--ink);
-    font-size: 11px;
-    font-weight: 950;
+    gap: 0.5rem;
+
+    padding: 0.375rem 0.625rem;
+    border: 1px solid var(--border);
+    border-radius: 999rem;
+
+    background: var(--surface-3);
+    color: var(--text);
+
+    font-size: 0.75rem;
+    font-weight: 650;
     text-transform: uppercase;
     letter-spacing: 0.08em;
-    background: #fff;
 }
 
 .badge::before {
     content: "";
-    width: 10px;
-    height: 10px;
-    border: 2px solid var(--border);
-    border-radius: 999px;
-    background: var(--guava);
+    inline-size: 0.5rem;
+    block-size: 0.5rem;
+    border-radius: 999rem;
+    background: var(--accent);
 }
 
-/* You can tune these to match your exact status values */
-.badge[data-status="queued"]::before {
-    background: var(--guava);
+/* Status dot mapping */
+.badge[data-status="pending"]::before {
+    background: color-mix(in srgb, var(--accent) 25%, var(--muted));
 }
 .badge[data-status="downloading"]::before {
-    background: var(--leaf);
+    background: var(--accent);
 }
 .badge[data-status="completed"]::before {
-    background: var(--leaf);
+    background: #22c55e;
 }
 .badge[data-status="failed"]::before {
-    background: var(--guava);
+    background: #ef4444;
 }
 .badge[data-status="canceled"]::before {
-    background: #bbb;
+    background: color-mix(in srgb, var(--muted) 70%, transparent);
+}
+.badge[data-status="skipped"]::before {
+    background: color-mix(in srgb, var(--muted) 70%, transparent);
 }
 
 /* Progress */
 .item__progress {
-    margin-top: 10px;
+    margin-top: 0.75rem;
 }
 
 .bar {
-    height: 12px;
-    border: 3px solid var(--border);
-    border-radius: 999px;
-    background: #fff;
-    box-shadow: 5px 5px 0 var(--ink);
+    block-size: 0.5rem;
+    border-radius: 999rem;
+    background: color-mix(in srgb, var(--surface) 80%, var(--text) 20%);
     overflow: hidden;
 }
 
 .bar__fill {
-    height: 100%;
-    background: var(--ink);
+    block-size: 100%;
+    background: var(--accent);
     width: 0%;
+    transition: width 180ms ease;
 }
 
-/* Make completed feel guava/leaf-ish */
 .item[data-status="completed"] .bar__fill {
-    background: var(--leaf);
+    background: #22c55e;
 }
 .item[data-status="failed"] .bar__fill {
-    background: var(--guava);
+    background: #ef4444;
 }
-.item[data-status="canceled"] .bar__fill {
-    background: #bbb;
+.item[data-status="canceled"] .bar__fill,
+.item[data-status="skipped"] .bar__fill {
+    background: color-mix(in srgb, var(--muted) 70%, transparent);
 }
 
 .item__progressMeta {
     display: flex;
     justify-content: space-between;
-    margin-top: 6px;
-    font-size: 12px;
-    font-weight: 700;
+    gap: 1rem;
+    margin-top: 0.375rem;
+
+    font-size: 0.875rem;
+    font-weight: 500;
     color: var(--muted);
 }
 
 /* Error block */
 .error {
-    margin-top: 10px;
-    border: 3px solid var(--border);
-    border-radius: 16px;
-    background: var(--guava-soft);
-    box-shadow: 6px 6px 0 var(--ink);
-    padding: 10px 12px;
+    margin-top: 0.75rem;
+    border: 1px solid color-mix(in srgb, #ef4444 55%, var(--border));
+    border-radius: calc(var(--radius) * 0.9);
+    background: color-mix(in srgb, #ef4444 12%, var(--surface));
+    padding: 0.75rem 1rem;
+    color: var(--text);
 }
 
 .error__label {
-    font-size: 11px;
-    font-weight: 950;
+    font-size: 0.75rem;
+    font-weight: 650;
     text-transform: uppercase;
     letter-spacing: 0.08em;
+    color: color-mix(in srgb, var(--text) 80%, var(--muted));
 }
 
 .error__msg {
-    margin-top: 6px;
-    font-size: 12px;
-    font-weight: 750;
+    margin-top: 0.375rem;
+    font-size: 0.875rem;
+    font-weight: 500;
     white-space: pre-wrap;
+    line-height: 1.35;
 }
 
 /* Actions */
 .item__actions {
     display: flex;
     flex-wrap: wrap;
-    gap: 10px;
-    margin-top: 12px;
+    gap: 0.5rem;
+    margin-top: 0.75rem;
 }
 
-/* Buttons (matches AddDownload vibe) */
+/* Buttons (GNOME-ish) */
 .btn {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    padding: 10px 12px;
-    border: 3px solid var(--border);
-    border-radius: 14px;
-    background: #fff;
-    color: var(--ink);
-    font-weight: 950;
+
+    padding: 0.625rem 0.875rem;
+    border: 1px solid var(--border);
+    border-radius: calc(var(--radius) * 0.9);
+
+    background: var(--surface-3);
+    color: var(--text);
+
+    font-weight: 650;
+    font-size: 0.875rem;
+
     cursor: pointer;
-    box-shadow: 6px 6px 0 var(--ink);
     transition:
-        transform 120ms ease,
+        background 120ms ease,
+        border-color 120ms ease,
         box-shadow 120ms ease;
 }
 
 .btn:hover {
-    transform: translate(-1px, -1px);
-    box-shadow: 8px 8px 0 var(--ink);
+    background: color-mix(in srgb, var(--surface-3) 88%, var(--text) 12%);
 }
 
 .btn:active {
-    transform: translate(2px, 2px);
-    box-shadow: 4px 4px 0 var(--ink);
+    background: color-mix(in srgb, var(--surface-3) 82%, var(--text) 18%);
 }
 
+.btn:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 0.2rem var(--ring);
+}
+
+/* Tone variants (subtle, still GNOME) */
 .btn--soft {
-    background: #fff;
+    background: var(--surface-3);
 }
 
 .btn--guava {
-    background: linear-gradient(0deg, var(--guava), var(--guava));
+    border-color: color-mix(in srgb, var(--accent) 55%, var(--border));
+    background: color-mix(in srgb, var(--accent) 18%, var(--surface));
 }
 
 .btn--leaf {
-    background: linear-gradient(0deg, var(--leaf), var(--leaf));
+    border-color: color-mix(in srgb, #22c55e 55%, var(--border));
+    background: color-mix(in srgb, #22c55e 14%, var(--surface));
 }
 
-@media (max-width: 720px) {
+/* Mobile */
+@media (max-width: 45rem) {
     .queue__header {
         flex-direction: column;
         align-items: stretch;
@@ -579,73 +628,14 @@ function onOpenFolder(path: string) {
     }
 
     .item__actions .btn {
-        width: 100%;
+        inline-size: 100%;
     }
 }
 
-/* Status badge */
-.badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    padding: 6px 10px;
-    border: 3px solid var(--border);
-    border-radius: 999px;
-    box-shadow: 4px 4px 0 var(--ink);
-    font-size: 11px;
-    font-weight: 950;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    background: #fff;
-}
-
-.badge::before {
-    content: "";
-    width: 10px;
-    height: 10px;
-    border: 2px solid var(--border);
-    border-radius: 999px;
-    background: var(--guava);
-}
-
-/* FIXED: your status is "pending", not "queued" */
-.badge[data-status="pending"]::before {
-    background: var(--guava);
-}
-.badge[data-status="downloading"]::before {
-    background: var(--leaf);
-}
-.badge[data-status="completed"]::before {
-    background: var(--leaf);
-}
-.badge[data-status="failed"]::before {
-    background: var(--guava);
-}
-.badge[data-status="canceled"]::before {
-    background: #bbb;
-}
-.badge[data-status="skipped"]::before {
-    background: #bbb;
-}
-
-/* Progress fill */
-.item[data-status="completed"] .bar__fill {
-    background: var(--leaf);
-}
-.item[data-status="failed"] .bar__fill {
-    background: var(--guava);
-}
-.item[data-status="canceled"] .bar__fill {
-    background: #bbb;
-}
-/* NEW: skipped looks neutral */
-.item[data-status="skipped"] .bar__fill {
-    background: #bbb;
-}
-
-/* If you want skipped to look less like an "error" block,
-   you can optionally override the error background: */
-.item[data-status="skipped"] .error {
-    background: #fff;
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+    .bar__fill {
+        transition: none;
+    }
 }
 </style>

@@ -1,22 +1,42 @@
 :root {
-    /* Core neutrals */
-    --bg: #fff7f2;
-    --ink: #111111;
-    --muted: #3a3a3a;
+    font-size: 16px;
 
-    /* Guava palette */
-    --guava: #ff4d7d;
-    --guava-soft: #ffd1dc;
+    --radius: 0.75rem;
+    --transition: 120ms ease-out;
 
-    --leaf: #26c281;
-    --leaf-soft: #c9f7e2;
+    /* Base semantic tokens (set per theme) */
+    --bg: #000;
+    --surface: #000;
+    --text: #fff;
+    --muted: #aaa;
+    --accent: #7dd3fc;
 
-    /* Surfaces */
-    --card: #ffffff;
-    --border: #111111;
+    /* Derived tokens (computed from theme) */
+    --border: color-mix(in srgb, var(--text) 12%, transparent);
+    --surface-2: color-mix(in srgb, var(--surface) 92%, var(--text) 8%);
+    --ring: color-mix(in srgb, var(--accent) 55%, transparent);
 
-    /* Neo-brutalist geometry */
-    --shadow-x: 8px;
-    --shadow-y: 8px;
-    --radius: 18px;
+    --danger: #ef4444;
+    --danger-border: color-mix(in srgb, var(--danger) 55%, var(--border));
+    --danger-bg: color-mix(in srgb, var(--danger) 12%, var(--surface));
+}
+
+/* Dark (default) */
+:root[data-theme="dark"] {
+    color-scheme: dark;
+    --bg: #121212;
+    --surface: #1b1b1b;
+    --text: #f4f4f5;
+    --muted: #a1a1aa;
+    --accent: #7dd3fc;
+}
+
+/* Light */
+:root[data-theme="light"] {
+    color-scheme: light;
+    --bg: #f6f6f6;
+    --surface: #ffffff;
+    --text: #18181b;
+    --muted: #6b7280;
+    --accent: #2563eb;
 }
