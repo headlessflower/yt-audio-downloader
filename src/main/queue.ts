@@ -7,6 +7,8 @@ import type {
   QueueState,
 } from "../renderer/types";
 
+import { makeQueueLimitError } from "./errors";
+
 import { QUEUE_LIMITS, type PlanTier } from "./queueLimits";
 
 const LOCATION_ERRORS = [
@@ -64,10 +66,11 @@ export class DownloadQueue {
 
   private assertCanAdd() {
     const limit = this.queueLimit();
-    if (Number.isFinite(limit) && this.queuedCount() >= limit) {
-      throw new Error(
-        `Queue limit reached (${limit}). Upgrade to add more downloads.`,
-      );
+    const current = this.queuedCount();
+
+    if (Number.isFinite(limit) && current >= limit) {
+      // throw a plain object so it survives IPC cleanly
+      throw makeQueueLimitError(limit, current);
     }
   }
 
@@ -298,6 +301,14 @@ export class DownloadQueue {
       this.pushState();
       this.startNext();
     });
+  }
+  clearFinished() {
+    // Keep active + pending items
+    this.items = this.items.filter(
+      (i) => i.status === "pending" || i.status === "downloading",
+    );
+
+    this.pushState();
   }
 }
 

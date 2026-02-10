@@ -17,15 +17,24 @@ declare global {
       };
       queue: {
         get(): Promise<QueueState>;
-        add(url: string, options: DownloadOptions): Promise<DownloadItem>;
+        add(
+          url: string,
+          options: DownloadOptions,
+        ): Promise<
+          { ok: true; item: DownloadItem } | { ok: false; error: any }
+        >;
         cancel(id: string): Promise<void>;
         remove(id: string): Promise<void>;
         retry(id: string): Promise<void>;
+        clearFinished(): Promise<void>;
         onUpdated(cb: (state: QueueState) => void): () => void;
       };
       shell: {
         openPath(p: string): Promise<string>;
         showItemInFolder(p: string): Promise<void>;
+      };
+      ui: {
+        showTextContextMenu: () => Promise<void>;
       };
     };
   }

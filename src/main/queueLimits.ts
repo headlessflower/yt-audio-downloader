@@ -1,8 +1,12 @@
 // queueLimits.ts
+//
+export type PlanTier = "free" | "pro" | "unlimited";
 export const QUEUE_LIMITS = {
-  free: 15,
+  free: 10,
   pro: 100, // example
-  unlimited: Infinity,
+  unlimited: Number.POSITIVE_INFINITY,
 } as const;
 
-export type PlanTier = keyof typeof QUEUE_LIMITS;
+export function getQueueLimit(tier: PlanTier) {
+  return QUEUE_LIMITS[tier] ?? 10;
+}

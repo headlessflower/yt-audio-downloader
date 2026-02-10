@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import type { QueueState, DownloadItem } from "../types";
+import ClearQueue from "./ClearQueue.vue";
+import { computed } from "vue";
 
-defineProps<{ state: QueueState }>();
+const props = defineProps<{ state: QueueState }>();
 
 function pct(item: DownloadItem) {
     const p = item.progress?.percent ?? 0;
@@ -56,6 +58,15 @@ function onOpenFolder(path: string) {
     const dir = dirnameFromPath(path);
     requireApi()?.shell.openPath(dir);
 }
+const hasFinished = computed(() =>
+    props.state.items.some(
+        (i) =>
+            i.status === "completed" ||
+            i.status === "failed" ||
+            i.status === "canceled" ||
+            i.status === "skipped",
+    ),
+);
 </script>
 
 <template>
@@ -79,6 +90,7 @@ function onOpenFolder(path: string) {
                         {{ state.items.length === 1 ? "item" : "items" }}
                     </span>
                 </span>
+                <ClearQueue :disabled="!hasFinished" />
             </div>
         </header>
 
@@ -238,9 +250,9 @@ function onOpenFolder(path: string) {
     display: flex;
     flex-direction: column;
 
-    height: 100%;
+    height: 50vh;
     min-height: 0;
-    overflow: clip;
+    overflow-y: auto;
 }
 
 /* Header */
@@ -321,8 +333,6 @@ function onOpenFolder(path: string) {
 .queue__body {
     flex: 1 1 auto;
     min-height: 0;
-    overflow: auto;
-
     padding: var(--pad-sm) var(--pad);
     display: grid;
     gap: var(--gap);

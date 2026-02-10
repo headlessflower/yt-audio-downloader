@@ -4,6 +4,7 @@ import type { QueueState, Settings } from "./types";
 import AddDownload from "./components/AddDownload.vue";
 import QueueList from "./components/QueueList.vue";
 import SettingsPanel from "./components/SettingsPanel.vue";
+import LimitDialog from "./components/LimitDialog.vue";
 
 const state = ref<QueueState>({ items: [], activeId: null });
 const settings = ref<Settings>({
@@ -13,6 +14,10 @@ const settings = ref<Settings>({
     embedThumbnail: true,
     allowPlaylists: false,
 });
+
+const limitOpen = ref(false);
+const limitInfo = ref({ limit: 10, current: 10 });
+const limitMessage = ref("");
 
 const theme = ref<"dark" | "light">("dark");
 
@@ -66,13 +71,47 @@ async function addToQueue(payload: {
     }
 
     const opts = { ...settings.value, ...payload.overrides };
-    await window.api.queue.add(url, opts);
+
+    const res = await window.api.queue.add(url, opts);
+
+    if (!res.ok) {
+        if (res.error?.code === "QUEUE_LIMIT") {
+            limitInfo.value = {
+                limit: Number(res.error.limit ?? 10),
+                current: Number(res.error.current ?? state.value.items.length),
+            };
+            limitMessage.value =
+                res.error.message ??
+                `Queue limit reached (${limitInfo.value.limit}).`;
+            limitOpen.value = true;
+            return;
+        }
+        console.error("queue:add failed:", res.error);
+        return;
+    }
+}
+function closeLimitDialog() {
+    limitOpen.value = false;
+}
+
+function upgradeFromLimitDialog() {
+    limitOpen.value = false;
+    window.api.shell.openPath("https://headlessflower.dev/app/guava-music-pro");
 }
 </script>
 
 <template>
     <div class="app">
         <header class="app__header">
+            <LimitDialog
+                :open="limitOpen"
+                :limit="limitInfo.limit"
+                :current="limitInfo.current"
+                :message="limitMessage"
+                @close="closeLimitDialog"
+                @upgrade="upgradeFromLimitDialog"
+            />
+
             <div class="brand">
                 <img
                     class="brand__logo"
@@ -265,16 +304,22 @@ async function addToQueue(payload: {
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: var(--radius);
+    display: flex;
+    overflow: hidden;
 
-    overflow: clip;
     min-height: 0;
 }
 
 /* Scroll lives inside the body to keep headers stable */
 .panel__body {
     padding: 1.25rem;
-    overflow: auto;
+    flex: 1 1 auto;
+    overflow-y: auto;
+    overflow-x: hidden;
+
     min-height: 0;
+    scrollbar-gutter: stable;
+    overscroll-behavior: contain;
 }
 
 /* Sticky settings on desktop */
@@ -285,9 +330,11 @@ async function addToQueue(payload: {
 
 /* Panel header */
 .panel__header {
+    display: flex;
     padding: 0.875rem 1rem;
     border-bottom: 1px solid var(--border);
     background: var(--surface);
+    flex: 0 0 auto;
 }
 
 .panel__title {

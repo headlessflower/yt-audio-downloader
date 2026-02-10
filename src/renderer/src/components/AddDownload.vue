@@ -84,6 +84,11 @@ function onKeydown(e: KeyboardEvent) {
     // Cmd/Ctrl + Enter to add
     if ((e.metaKey || e.ctrlKey) && e.key === "Enter") add();
 }
+
+function onContextMenu(e: MouseEvent) {
+    e.preventDefault(); // stop any custom menus
+    window.api?.ui?.showTextContextMenu?.();
+}
 </script>
 
 <template>
@@ -114,6 +119,7 @@ function onKeydown(e: KeyboardEvent) {
                 placeholder="Paste a URL…"
                 rows="3"
                 @keydown="onKeydown"
+                @contextmenu="onContextMenu"
             />
             <p v-if="error" class="error" role="alert">{{ error }}</p>
         </div>
@@ -281,6 +287,7 @@ function onKeydown(e: KeyboardEvent) {
 
 /* Textarea — GNOME style: surface + focus ring */
 .textarea {
+    min-inline-size: 0;
     inline-size: 100%;
     resize: vertical;
     min-block-size: 6.25rem;
@@ -301,6 +308,8 @@ function onKeydown(e: KeyboardEvent) {
         border-color 120ms ease,
         box-shadow 120ms ease,
         background 120ms ease;
+
+    box-sizing: border-box;
 }
 
 .textarea::placeholder {

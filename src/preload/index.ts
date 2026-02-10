@@ -15,6 +15,7 @@ const api = {
     cancel: (id: string) => ipcRenderer.invoke("queue:cancel", id),
     remove: (id: string) => ipcRenderer.invoke("queue:remove", id),
     retry: (id: string) => ipcRenderer.invoke("queue:retry", id),
+    clearFinished: () => ipcRenderer.invoke("queue:clearFinished"),
     onUpdated: (cb: (state: any) => void) => {
       const handler = (_: unknown, state: any) => cb(state);
       ipcRenderer.on("queue:updated", handler);
@@ -30,9 +31,3 @@ const api = {
 
 contextBridge.exposeInMainWorld("api", api);
 console.log("[preload] window.api exposed");
-
-declare global {
-  interface Window {
-    api: typeof api;
-  }
-}
