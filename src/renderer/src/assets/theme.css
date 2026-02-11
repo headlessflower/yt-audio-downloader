@@ -40,3 +40,11 @@
     --muted: #6b7280;
     --accent: #2563eb;
 }
+
+html,
+body,
+#app {
+    height: 100%;
+    margin: 0;
+    overflow: hidden;
+}

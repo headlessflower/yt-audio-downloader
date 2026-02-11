@@ -250,7 +250,6 @@ const hasFinished = computed(() =>
     display: flex;
     flex-direction: column;
 
-    height: 50vh;
     min-height: 0;
     overflow-y: auto;
 }

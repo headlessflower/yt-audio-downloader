@@ -170,36 +170,45 @@ function upgradeFromLimitDialog() {
 */
 
 .app {
-    min-height: 100vh;
-    background: var(--bg);
-    color: var(--text);
-    font-family:
-        ui-sans-serif,
-        system-ui,
-        -apple-system,
-        Segoe UI,
-        Roboto,
-        Arial,
-        "Apple Color Emoji",
-        "Segoe UI Emoji";
+  height: 100%;
+  min-height: 0;
 
-    padding: 1.125rem;
+  background: var(--bg);
+  color: var(--text);
+
+  font-family:
+      ui-sans-serif,
+      system-ui,
+      -apple-system,
+      Segoe UI,
+      Roboto,
+      Arial,
+      "Apple Color Emoji",
+      "Segoe UI Emoji";
+
+  padding: 1.125rem;
+
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+
 }
 
-/* Constrain width but keep it roomy */
 .app__header,
 .app__layout {
     max-width: 72.5rem; /* ~1160px */
     margin-inline: auto;
 }
 
-/* Header (GNOME headerbar-ish) */
+
+
+/* Header*/
 .app__header {
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 0.875rem;
-
+  flex: 0 0 auto;
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: var(--radius);
@@ -255,7 +264,6 @@ function upgradeFromLimitDialog() {
     gap: 0.625rem;
 }
 
-/* GNOME-ish chip: subtle, not shouty */
 .status__chip {
     display: inline-flex;
     align-items: center;
@@ -276,19 +284,24 @@ function upgradeFromLimitDialog() {
 
 /* Layout */
 .app__layout {
-    display: grid;
-    grid-template-columns: 1fr minmax(18rem, 23.75rem); /* ~380px max */
-    gap: 1rem;
+  display: grid;
+  grid-template-columns: 1fr minmax(18rem, 23.75rem);
+  grid-template-rows: minmax(0, 1fr);
+  gap: 1rem;
 
-    margin-top: 1rem;
+  flex: 1 1 auto;
+  margin-top: 1rem;
 
-    /* keeps content from fighting the viewport while staying responsive */
-    min-height: calc(100vh - 6.5rem);
+  height: 100%;
+  min-height: 0;
+  min-width: 0;
+
+  overflow: hidden;
 }
 
 .app__main {
     display: grid;
-    grid-template-rows: auto 1fr; /* AddDownload then QueueList */
+    grid-template-rows: auto 1fr;
     gap: 1rem;
     min-height: 0;
 }
@@ -304,22 +317,20 @@ function upgradeFromLimitDialog() {
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: var(--radius);
-    display: flex;
-    overflow: hidden;
-
-    min-height: 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
 }
 
 /* Scroll lives inside the body to keep headers stable */
 .panel__body {
-    padding: 1.25rem;
-    flex: 1 1 auto;
-    overflow-y: auto;
-    overflow-x: hidden;
-
-    min-height: 0;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
     scrollbar-gutter: stable;
     overscroll-behavior: contain;
+  padding: 1rem;
 }
 
 /* Sticky settings on desktop */
