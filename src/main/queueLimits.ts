@@ -8,5 +8,5 @@ export const QUEUE_LIMITS = {
 } as const;
 
 export function getQueueLimit(tier: PlanTier) {
-  return QUEUE_LIMITS[tier] ?? 10;
+  return QUEUE_LIMITS[tier] ?? 100;
 }
