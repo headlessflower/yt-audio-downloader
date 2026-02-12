@@ -1,3 +1,4 @@
+
 import { contextBridge, ipcRenderer } from "electron";
 
 console.log("[preload] loaded OK");
@@ -11,7 +12,7 @@ const api = {
   queue: {
     get: () => ipcRenderer.invoke("queue:get"),
     add: (url: string, options: any) =>
-      ipcRenderer.invoke("queue:add", url, options),
+        ipcRenderer.invoke("queue:add", url, options),
     cancel: (id: string) => ipcRenderer.invoke("queue:cancel", id),
     remove: (id: string) => ipcRenderer.invoke("queue:remove", id),
     retry: (id: string) => ipcRenderer.invoke("queue:retry", id),
@@ -25,7 +26,7 @@ const api = {
   shell: {
     openPath: (p: string) => ipcRenderer.invoke("shell:openPath", p),
     showItemInFolder: (p: string) =>
-      ipcRenderer.invoke("shell:showItemInFolder", p),
+        ipcRenderer.invoke("shell:showItemInFolder", p),
   },
 } as const;
 

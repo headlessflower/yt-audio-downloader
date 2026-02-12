@@ -22,15 +22,15 @@ export function registerIpc(queue: DownloadQueue) {
   ipcMain.handle("queue:get", () => queue.getState());
 
   ipcMain.handle(
-    "queue:add",
-    async (_e, url: string, options: DownloadOptions) => {
-      try {
-        const item = await queue.add(url, options);
-        return { ok: true as const, item };
-      } catch (err: any) {
-        return { ok: false as const, error: err };
-      }
-    },
+      "queue:add",
+      async (_e, url: string, options: DownloadOptions) => {
+        try {
+          const item = await queue.add(url, options);
+          return { ok: true as const, item };
+        } catch (err: any) {
+          return { ok: false as const, error: err };
+        }
+      },
   );
 
   ipcMain.handle("queue:cancel", (_e, id: string) => queue.cancel(id));
@@ -40,10 +40,10 @@ export function registerIpc(queue: DownloadQueue) {
   });
 
   ipcMain.handle("shell:openPath", (_e, filePath: string) =>
-    shell.openPath(filePath),
+      shell.openPath(filePath),
   );
   ipcMain.handle("shell:showItemInFolder", (_e, filePath: string) =>
-    shell.showItemInFolder(filePath),
+      shell.showItemInFolder(filePath),
   );
   ipcMain.handle("ui:showTextContextMenu", (event) => {
     const menu = Menu.buildFromTemplate([

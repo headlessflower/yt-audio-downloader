@@ -22,7 +22,7 @@ const queue = new DownloadQueue((state) => {
 function resolvePreload() {
   const preloadDir = path.join(__dirname, "../preload");
   const candidates = ["index.js", "index.mjs", "index.cjs"].map((f) =>
-    path.join(preloadDir, f),
+      path.join(preloadDir, f),
   );
   const found = candidates.find((p) => fs.existsSync(p));
   if (!found) {

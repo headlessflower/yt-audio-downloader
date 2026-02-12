@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch } from "vue";
+import { ref, watch, computed, toRaw } from "vue";
 import type { Settings } from "../types";
 
 const props = defineProps<{ settings: Settings }>();
@@ -13,13 +13,49 @@ watch(
     { deep: true },
 );
 
-async function pickFolder() {
-    const p = await window.api.settings.pickFolder();
-    if (p) draft.value.outputDir = p;
+const hasDir = computed(() => Boolean((draft.value.outputDir ?? "").trim()));
+
+function normalizeDir(p: string) {
+  return (p ?? "").trim().replace(/\/+$/, "");
 }
 
-function save() {
-    emit("save", { ...draft.value });
+function plainSettings(s: Settings): Settings {
+  // Ensure we never send a Vue Proxy / reactive object through IPC
+  const raw = toRaw(s) as Settings;
+  return JSON.parse(JSON.stringify(raw));
+}
+
+function toPlain<T>(v: T): T {
+  return JSON.parse(JSON.stringify(toRaw(v)));
+}
+
+async function pickFolder() {
+  const p = await window.api.settings.pickFolder();
+  const normalized = normalizeDir(p || "");
+  if (!normalized) return;
+
+  draft.value.outputDir = normalized;
+
+  // Save immediately so directory changes "stick" even if parent wiring is off
+  const next = toPlain({ ...draft.value });
+  await window.api.settings.set(next);
+  emit("save", next);
+}
+function clearDir() {
+  draft.value.outputDir = "";
+}
+
+
+async function save() {
+  const next: Settings = {
+    ...draft.value,
+    outputDir: normalizeDir(draft.value.outputDir || ""),
+  };
+
+  const plain = toPlain(next);
+
+  await window.api.settings.set(plain);
+  emit("save", plain);
 }
 </script>
 
@@ -40,13 +76,14 @@ function save() {
         <div class="settings__body">
             <!-- Output folder -->
             <div class="field">
-                <label class="field__label" for="outdir">Output folder</label>
+                <label class="field__label" for="outputDir">Output folder</label>
                 <div class="field__row">
                     <input
-                        id="outdir"
+                        id="outputDir"
                         v-model="draft.outputDir"
                         class="input"
                         type="text"
+                        placeholder="/Users/you/Music"
                         autocomplete="off"
                         spellcheck="false"
                     />
@@ -57,7 +94,22 @@ function save() {
                     >
                         Browse
                     </button>
+
+                  <button
+                      class="settings__btn settings__btn--ghost"
+                      type="button"
+                      @click="clearDir"
+                      :disabled="!hasDir"
+                      title="Clear folder selection"
+                  >
+                    Clear
+                  </button>
                 </div>
+
+              <p class="settings__hint">
+                Pick a folder (recommended) or paste a path. Tilde paths like <code>~/Downloads</code>
+                are OK — the app should expand them in the main process.
+              </p>
             </div>
 
             <!-- Default format -->
@@ -411,5 +463,72 @@ function save() {
     .btn {
         inline-size: 100%;
     }
+}
+
+.settings__row {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 10px;
+  align-items: center;
+}
+
+.settings__input {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.92);
+  outline: none;
+}
+
+.settings__input:focus {
+  border-color: rgba(120, 200, 255, 0.55);
+}
+
+.settings__btn {
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.92);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.settings__btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.settings__btn:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.settings__btn--ghost {
+  background: transparent;
+}
+
+.settings__hint {
+  margin: 0;
+  font-size: 12px;
+  opacity: 0.7;
+}
+
+.settings__actions {
+  margin-top: 14px;
+}
+
+.settings__save {
+  padding: 10px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.95);
+  font-weight: 800;
+  cursor: pointer;
+}
+.settings__save:hover {
+  background: rgba(255, 255, 255, 0.12);
 }
 </style>

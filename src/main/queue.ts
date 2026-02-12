@@ -1,3 +1,4 @@
+
 import { spawn } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { ytDlpPath, ffmpegPath } from "./ytPaths";
@@ -31,15 +32,15 @@ export class DownloadQueue {
   private proc: ReturnType<typeof spawn> | null = null;
   private notify: UpdateFn;
 
-  // NEW: plan tier (default free)
+  // plan tier (default free)
   private plan: PlanTier;
 
-  constructor(notify: UpdateFn, plan: PlanTier = "free") {
+  constructor(notify: UpdateFn, plan: PlanTier = "pro") {
     this.notify = notify;
     this.plan = plan;
   }
 
-  // Optional: update plan at runtime (after license check, login, etc.)
+  //  update plan at runtime (after license check, login, etc.)
   setPlan(plan: PlanTier) {
     this.plan = plan;
     this.pushState();
@@ -56,7 +57,7 @@ export class DownloadQueue {
   // NEW: what counts toward the queue limit
   private queuedCount(): number {
     return this.items.filter(
-      (i) => i.status === "pending" || i.status === "downloading",
+        (i) => i.status === "pending" || i.status === "downloading",
     ).length;
   }
 
@@ -119,7 +120,7 @@ export class DownloadQueue {
 
     // NEW: enforce limit when retrying too (since it re-enters the queue)
     const isCurrentlyQueued =
-      item.status === "pending" || item.status === "downloading";
+        item.status === "pending" || item.status === "downloading";
 
     if (!isCurrentlyQueued) {
       this.assertCanAdd();
@@ -232,8 +233,8 @@ export class DownloadQueue {
 
         // yt-dlp prints full filepath here
         if (
-          trimmed &&
-          (trimmed.startsWith("/") || /^[A-Za-z]:\\/.test(trimmed))
+            trimmed &&
+            (trimmed.startsWith("/") || /^[A-Za-z]:\\/.test(trimmed))
         ) {
           item.outputPath = trimmed;
           this.pushState();
@@ -305,7 +306,7 @@ export class DownloadQueue {
   clearFinished() {
     // Keep active + pending items
     this.items = this.items.filter(
-      (i) => i.status === "pending" || i.status === "downloading",
+        (i) => i.status === "pending" || i.status === "downloading",
     );
 
     this.pushState();
