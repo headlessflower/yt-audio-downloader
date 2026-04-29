@@ -1,6 +1,6 @@
 
 <script setup lang="ts">
-import type { QueueState, DownloadItem } from "../types";
+import type { ConversionStage, QueueState, DownloadItem } from "../types";
 import ClearQueue from "./ClearQueue.vue";
 import { computed } from "vue";
 
@@ -20,12 +20,55 @@ function pct(item: DownloadItem) {
 
 function statusLabel(item: DownloadItem) {
   if (item.status === "downloading") return "Downloading";
+  if (item.status === "converting") return "Converting";
   if (item.status === "pending") return "Pending";
   if (item.status === "completed") return "Completed";
   if (item.status === "failed") return "Failed";
   if (item.status === "canceled") return "Canceled";
   if (item.status === "skipped") return "Unavailable";
   return item.status;
+}
+
+function conversionStages(item: DownloadItem): ConversionStage[] {
+  return [
+    "extract",
+    ...(item.options.embedMetadata ? ["metadata" as const] : []),
+    ...(item.options.embedThumbnail ? ["thumbnail" as const] : []),
+    "finalize",
+    "move",
+    "done",
+  ];
+}
+
+function conversionStageLabel(stage: ConversionStage) {
+  const labels: Record<ConversionStage, string> = {
+    extract: "Extract",
+    metadata: "Metadata",
+    thumbnail: "Artwork",
+    finalize: "Finalize",
+    move: "Move",
+    done: "Done",
+  };
+
+  return labels[stage];
+}
+
+function activeConversionStage(item: DownloadItem): ConversionStage | undefined {
+  if (item.status === "completed") return "done";
+  return item.conversionProgress?.currentStage;
+}
+
+function conversionStageState(item: DownloadItem, stage: ConversionStage) {
+  const activeStage = activeConversionStage(item);
+  const completedStages = item.conversionProgress?.completedStages ?? [];
+
+  if (item.status === "completed" || completedStages.includes(stage)) {
+    return "done";
+  }
+
+  if (activeStage === stage) return "active";
+
+  return "pending";
 }
 
 // Avoid referencing `window.api` directly in the template (preload may be missing,
@@ -137,15 +180,20 @@ const hasFinished = computed(() =>
             </div>
 
             <div
-                v-if="item.status === 'downloading'"
+                v-if="item.status === 'downloading' || item.status === 'converting'"
                 class="item__sub"
             >
+              <template v-if="item.status === 'converting'">
+                {{ conversionStageLabel(item.conversionProgress?.currentStage || "extract") }}
+              </template>
+              <template v-else>
                             <span class="item__speed">{{
                                 item.progress.speed || ""
                               }}</span>
               <span v-if="item.progress.eta" class="item__eta"
               >• ETA {{ item.progress.eta }}</span
               >
+              </template>
             </div>
           </div>
         </div>
@@ -174,6 +222,26 @@ const hasFinished = computed(() =>
           </div>
         </div>
 
+        <div
+            v-if="item.status === 'converting' || item.status === 'completed'"
+            class="item__stages"
+        >
+          <div class="stagebar" role="list" aria-label="Conversion stages">
+            <div
+                v-for="stage in conversionStages(item)"
+                :key="stage"
+                class="stage"
+                :data-state="conversionStageState(item, stage)"
+                role="listitem"
+            >
+              <span class="stage__dot" aria-hidden="true" />
+              <span class="stage__label">
+                {{ conversionStageLabel(stage) }}
+              </span>
+            </div>
+          </div>
+        </div>
+
         <!-- UPDATED: show message for failed OR skipped -->
         <div
             v-if="item.status === 'failed' || item.status === 'skipped'"
@@ -190,7 +258,7 @@ const hasFinished = computed(() =>
 
         <div class="item__actions">
           <button
-              v-if="item.status === 'downloading'"
+              v-if="item.status === 'downloading' || item.status === 'converting'"
               class="btn btn--soft"
               type="button"
               @click="onCancel(item.id)"
@@ -213,7 +281,7 @@ const hasFinished = computed(() =>
           </button>
 
           <button
-              v-if="item.status !== 'downloading'"
+              v-if="item.status !== 'downloading' && item.status !== 'converting'"
               class="btn btn--soft"
               type="button"
               @click="onRemove(item.id)"
@@ -484,6 +552,9 @@ const hasFinished = computed(() =>
 .badge[data-status="downloading"]::before {
   background: var(--accent);
 }
+.badge[data-status="converting"]::before {
+  background: color-mix(in srgb, var(--accent) 60%, #22c55e 40%);
+}
 .badge[data-status="completed"]::before {
   background: #22c55e;
 }
@@ -519,6 +590,9 @@ const hasFinished = computed(() =>
 .item[data-status="completed"] .bar__fill {
   background: #22c55e;
 }
+.item[data-status="converting"] .bar__fill {
+  background: color-mix(in srgb, var(--accent) 70%, #22c55e 30%);
+}
 .item[data-status="failed"] .bar__fill {
   background: #ef4444;
 }
@@ -536,6 +610,66 @@ const hasFinished = computed(() =>
   font-size: 0.875rem;
   font-weight: 500;
   color: var(--muted);
+}
+
+.item__stages {
+  margin-top: 0.75rem;
+}
+
+.stagebar {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(4.75rem, 1fr));
+  gap: 0.375rem;
+}
+
+.stage {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.5rem 0.625rem;
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius) * 0.75);
+  background: color-mix(in srgb, var(--surface) 82%, var(--text) 18%);
+  color: var(--muted);
+}
+
+.stage__dot {
+  inline-size: 0.45rem;
+  block-size: 0.45rem;
+  flex: 0 0 auto;
+  border-radius: 999rem;
+  background: color-mix(in srgb, var(--muted) 65%, transparent);
+}
+
+.stage__label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.75rem;
+  font-weight: 650;
+}
+
+.stage[data-state="done"] {
+  color: var(--text);
+  background: color-mix(in srgb, #22c55e 14%, var(--surface));
+  border-color: color-mix(in srgb, #22c55e 42%, var(--border));
+}
+
+.stage[data-state="done"] .stage__dot {
+  background: #22c55e;
+}
+
+.stage[data-state="active"] {
+  color: var(--text);
+  background: color-mix(in srgb, var(--accent) 18%, var(--surface));
+  border-color: color-mix(in srgb, var(--accent) 55%, var(--border));
+}
+
+.stage[data-state="active"] .stage__dot {
+  background: var(--accent);
+  box-shadow: 0 0 0 0.22rem color-mix(in srgb, var(--accent) 24%, transparent);
 }
 
 /* Error block */

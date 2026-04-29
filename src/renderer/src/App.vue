@@ -1,12 +1,13 @@
 <script setup lang="ts">
-import { onMounted, onBeforeUnmount, ref } from "vue";
-import type { QueueState, Settings } from "./types";
+import { computed, onMounted, onBeforeUnmount, ref } from "vue";
+import type { DownloadItem, QueueState, Settings } from "./types";
 import AddDownload from "./components/AddDownload.vue";
 import QueueList from "./components/QueueList.vue";
 import SettingsPanel from "./components/SettingsPanel.vue";
 import LimitDialog from "./components/LimitDialog.vue";
 
 const state = ref<QueueState>({ items: [], activeId: null });
+const history = ref<DownloadItem[]>([]);
 const settings = ref<Settings>({
   outputDir: "",
   audioFormat: "mp3",
@@ -35,7 +36,11 @@ onMounted(async () => {
 
   settings.value = await window.api.settings.get();
   state.value = await window.api.queue.get();
-  unsub = window.api.queue.onUpdated((s) => (state.value = s));
+  history.value = await window.api.history.get();
+  unsub = window.api.queue.onUpdated((s) => {
+    state.value = s;
+    mergeCompletedIntoHistory(s.items);
+  });
 });
 
 onBeforeUnmount(() => {
@@ -47,12 +52,56 @@ async function saveSettings(next: Settings) {
   settings.value = await window.api.settings.set(next);
 }
 
+const recentDownloads = computed<DownloadItem[]>(() => {
+  const byId = new Map<string, DownloadItem>();
+
+  for (const item of history.value) {
+    if (item.status === "completed" && item.outputPath) byId.set(item.id, item);
+  }
+
+  for (const item of state.value.items) {
+    if (item.status === "completed" && item.outputPath) byId.set(item.id, item);
+  }
+
+  return [...byId.values()]
+      .sort((a, b) => {
+        return (
+            new Date(b.finishedAt || b.createdAt).getTime() -
+            new Date(a.finishedAt || a.createdAt).getTime()
+        );
+      })
+      .slice(0, 5);
+});
+
+function mergeCompletedIntoHistory(items: DownloadItem[]) {
+  const completed = items.filter(
+      (item) => item.status === "completed" && item.outputPath,
+  );
+  if (!completed.length) return;
+
+  const byId = new Map<string, DownloadItem>();
+  for (const item of [...completed, ...history.value]) {
+    byId.set(item.id, item);
+  }
+
+  history.value = [...byId.values()]
+      .sort((a, b) => {
+        return (
+            new Date(b.finishedAt || b.createdAt).getTime() -
+            new Date(a.finishedAt || a.createdAt).getTime()
+        );
+      })
+      .slice(0, 10);
+}
+
 function isDuplicateUrl(u: string) {
   const url = u.trim();
   return state.value.items.some(
       (item) =>
           item.url === url &&
-          (item.status === "pending" || item.status === "downloading"),
+          (item.status === "pending" ||
+              item.status === "downloading" ||
+              item.status === "converting"),
   );
 }
 
@@ -96,7 +145,7 @@ function closeLimitDialog() {
 
 function upgradeFromLimitDialog() {
   limitOpen.value = false;
-  window.api.shell.openPath("https://headlessflower.dev/app/guava-music-pro");
+  window.api.shell.openPath("https://headlessflower.dev/app/fetchr-pro");
 }
 </script>
 
@@ -116,12 +165,12 @@ function upgradeFromLimitDialog() {
         <img
             class="brand__logo"
             src="/src/guava_logo_black.png"
-            alt="Guava Music Vault logo"
+            alt="fetchr logo"
         />
         <div class="brand__text">
-          <h1 class="brand__title">Guava Music Vault</h1>
+          <h1 class="brand__title">fetchr</h1>
           <p class="brand__tagline">
-            Save songs for research and planning
+            Fetch audio for research and planning
           </p>
         </div>
       </div>
@@ -151,6 +200,7 @@ function upgradeFromLimitDialog() {
           <div class="panel__body">
             <SettingsPanel
                 :settings="settings"
+                :recent-downloads="recentDownloads"
                 @save="saveSettings"
             />
           </div>

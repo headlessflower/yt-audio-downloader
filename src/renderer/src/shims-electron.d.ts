@@ -3,7 +3,7 @@ import type {
   DownloadOptions,
   QueueState,
   Settings,
-} from "../../shared/types";
+} from "./types";
 
 export {};
 
@@ -14,6 +14,9 @@ declare global {
         get(): Promise<Settings>;
         set(s: Settings): Promise<Settings>;
         pickFolder(): Promise<string>;
+      };
+      history: {
+        get(): Promise<DownloadItem[]>;
       };
       queue: {
         get(): Promise<QueueState>;

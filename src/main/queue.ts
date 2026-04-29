@@ -1,16 +1,19 @@
 
 import { spawn } from "node:child_process";
 import { randomUUID } from "node:crypto";
+import path from "node:path";
 import { ytDlpPath, ffmpegPath } from "./ytPaths";
 import type {
   DownloadItem,
   DownloadOptions,
+  ConversionStage,
   QueueState,
-} from "../renderer/types";
+} from "@renderer/types";
 
 import { makeQueueLimitError } from "./errors";
 
 import { QUEUE_LIMITS, type PlanTier } from "./queueLimits";
+import { store } from "./store";
 
 const LOCATION_ERRORS = [
   "not available in your country",
@@ -57,7 +60,10 @@ export class DownloadQueue {
   // NEW: what counts toward the queue limit
   private queuedCount(): number {
     return this.items.filter(
-        (i) => i.status === "pending" || i.status === "downloading",
+        (i) =>
+            i.status === "pending" ||
+            i.status === "downloading" ||
+            i.status === "converting",
     ).length;
   }
 
@@ -85,6 +91,7 @@ export class DownloadQueue {
       title: "",
       status: "pending",
       progress: { percent: 0 },
+      conversionProgress: { completedStages: [] },
       outputPath: options.outputDir,
       error: "",
       createdAt: new Date().toISOString(),
@@ -120,7 +127,9 @@ export class DownloadQueue {
 
     // NEW: enforce limit when retrying too (since it re-enters the queue)
     const isCurrentlyQueued =
-        item.status === "pending" || item.status === "downloading";
+        item.status === "pending" ||
+        item.status === "downloading" ||
+        item.status === "converting";
 
     if (!isCurrentlyQueued) {
       this.assertCanAdd();
@@ -131,6 +140,7 @@ export class DownloadQueue {
     item.startedAt = "";
     item.finishedAt = "";
     item.progress = { percent: 0 };
+    item.conversionProgress = { completedStages: [] };
     this.pushState();
 
     if (!this.activeId) this.startNext();
@@ -168,6 +178,8 @@ export class DownloadQueue {
     this.activeId = item.id;
     item.status = "downloading";
     item.startedAt = new Date().toISOString();
+    item.progress = { percent: 0 };
+    item.conversionProgress = { completedStages: [] };
     this.pushState();
 
     const args: string[] = [
@@ -194,11 +206,13 @@ export class DownloadQueue {
     // capture exact final filepath
     args.push("--print", "after_move:%(filepath)s");
 
-    this.proc = spawn(ytDlpPath(), args, { stdio: ["ignore", "pipe", "pipe"] });
-    const proc = this.proc;
+    const proc = spawn(ytDlpPath(), args, { stdio: ["ignore", "pipe", "pipe"] });
+    this.proc = proc;
 
     let stdoutBuf = "";
     let stderrBuf = "";
+    let stderrAll = "";
+    const savedOutputPaths = new Set<string>();
 
     // NEW: prevent double-fail / overwritten error on close
     let terminatedEarly = false;
@@ -220,57 +234,111 @@ export class DownloadQueue {
       proc.kill("SIGKILL");
     };
 
-    proc.stdout.setEncoding("utf8");
-    proc.stderr.setEncoding("utf8");
+    const setOutputPath = (filePath: string, saveToHistory = false) => {
+      item.outputPath = filePath;
+      item.title = titleFromPath(filePath) || item.title;
 
-    proc.stdout.on("data", (chunk: string) => {
+      if (saveToHistory && !savedOutputPaths.has(filePath)) {
+        savedOutputPaths.add(filePath);
+        saveRecentDownload(fileHistoryItem(item, filePath));
+      }
+
+      this.pushState();
+    };
+
+    const markConverting = (stage: ConversionStage) => {
+      if (item.status === "canceled" || item.status === "failed") return;
+      if (item.status !== "converting") {
+        item.status = "converting";
+        item.progress.percent = 100;
+      }
+
+      const expectedStages = conversionStagesForItem(item);
+      const stageIndex = expectedStages.indexOf(stage);
+      const completedStages =
+          stageIndex > 0 ? expectedStages.slice(0, stageIndex) : [];
+
+      item.conversionProgress = {
+        currentStage: stage,
+        completedStages,
+      };
+
+      this.pushState();
+    };
+
+    const handleLine = (line: string) => {
+      const trimmed = line.trim();
+      if (!trimmed) return;
+
+      // yt-dlp prints full filepath here
+      if (trimmed.startsWith("/") || /^[A-Za-z]:\\/.test(trimmed)) {
+        setOutputPath(trimmed, true);
+        return;
+      }
+
+      const destinationMatch = trimmed.match(
+          /^\[(?:ExtractAudio|Merger|VideoConvertor|MoveFiles)]\s+(?:Destination|Moving file to):\s+(.+)$/i,
+      );
+      if (destinationMatch?.[1]) {
+        setOutputPath(destinationMatch[1].trim());
+      }
+
+      if (/^\[(?:ExtractAudio|Metadata|EmbedThumbnail|VideoConvertor|Fixup|MoveFiles)]/i.test(trimmed)) {
+        markConverting(conversionStageFromLine(trimmed));
+        return;
+      }
+
+      // Parse yt-dlp download progress lines
+      if (trimmed.startsWith("[download]")) {
+        const percentMatch = trimmed.match(/(\d+(?:\.\d+)?)%/);
+        const totalMatch = trimmed.match(/of\s+([^\s]+)\s+at/i);
+        const speedMatch = trimmed.match(/at\s+([^\s]+)\s+ETA/i);
+        const etaMatch = trimmed.match(/ETA\s+([0-9:]+)/i);
+
+        if (percentMatch) item.progress.percent = Number(percentMatch[1]);
+        if (totalMatch) item.progress.total = totalMatch[1];
+        if (speedMatch) item.progress.speed = speedMatch[1];
+        if (etaMatch) item.progress.eta = etaMatch[1];
+
+        this.pushState();
+        return;
+      }
+
+      // fallback percent parsing
+      const m = trimmed.match(/(\d+(?:\.\d+)?)%/);
+      if (m) {
+        if (item.status !== "converting") {
+          item.progress.percent = Number(m[1]);
+          this.pushState();
+        }
+      }
+    };
+
+    proc.stdout?.setEncoding("utf8");
+    proc.stderr?.setEncoding("utf8");
+
+    proc.stdout?.on("data", (chunk: string) => {
       stdoutBuf += chunk;
       const lines = stdoutBuf.split("\n");
       stdoutBuf = lines.pop() ?? "";
 
       for (const line of lines) {
-        const trimmed = line.trim();
-
-        // yt-dlp prints full filepath here
-        if (
-            trimmed &&
-            (trimmed.startsWith("/") || /^[A-Za-z]:\\/.test(trimmed))
-        ) {
-          item.outputPath = trimmed;
-          this.pushState();
-          continue;
-        }
-
-        // Parse yt-dlp download progress lines
-        if (trimmed.startsWith("[download]")) {
-          const percentMatch = trimmed.match(/(\d+(?:\.\d+)?)%/);
-          const totalMatch = trimmed.match(/of\s+([^\s]+)\s+at/i);
-          const speedMatch = trimmed.match(/at\s+([^\s]+)\s+ETA/i);
-          const etaMatch = trimmed.match(/ETA\s+([0-9:]+)/i);
-
-          if (percentMatch) item.progress.percent = Number(percentMatch[1]);
-          if (totalMatch) item.progress.total = totalMatch[1];
-          if (speedMatch) item.progress.speed = speedMatch[1];
-          if (etaMatch) item.progress.eta = etaMatch[1];
-
-          this.pushState();
-          continue;
-        }
-
-        // fallback percent parsing
-        const m = trimmed.match(/(\d+(?:\.\d+)?)%/);
-        if (m) {
-          item.progress.percent = Number(m[1]);
-          this.pushState();
-        }
+        handleLine(line);
       }
     });
 
     // UPDATED: detect geo/hidden errors early and advance queue
-    proc.stderr.on("data", (chunk: string) => {
+    proc.stderr?.on("data", (chunk: string) => {
+      stderrAll += chunk;
       stderrBuf += chunk;
+      const lines = stderrBuf.split("\n");
+      stderrBuf = lines.pop() ?? "";
 
-      const lower = stderrBuf.toLowerCase();
+      for (const line of lines) {
+        handleLine(line);
+      }
+
+      const lower = stderrAll.toLowerCase();
       if (LOCATION_ERRORS.some((s) => lower.includes(s))) {
         failActiveItem("Unavailable in your location (geo-restricted/hidden).");
       }
@@ -293,9 +361,17 @@ export class DownloadQueue {
 
       if (code === 0) {
         item.status = "completed";
+        item.progress.percent = 100;
+        item.conversionProgress = {
+          currentStage: "done",
+          completedStages: conversionStagesForItem(item),
+        };
+        if (!savedOutputPaths.size && item.outputPath) {
+          saveRecentDownload(fileHistoryItem(item, item.outputPath));
+        }
       } else if (item.status !== "canceled") {
         item.status = "failed";
-        item.error = stderrBuf.trim();
+        item.error = (stderrAll || stderrBuf).trim();
       }
 
       item.finishedAt = new Date().toISOString();
@@ -306,7 +382,10 @@ export class DownloadQueue {
   clearFinished() {
     // Keep active + pending items
     this.items = this.items.filter(
-        (i) => i.status === "pending" || i.status === "downloading",
+        (i) =>
+            i.status === "pending" ||
+            i.status === "downloading" ||
+            i.status === "converting",
     );
 
     this.pushState();
@@ -315,4 +394,62 @@ export class DownloadQueue {
 
 function urlNormalize(url: string) {
   return url.trim();
+}
+
+function titleFromPath(filePath: string) {
+  const parsed = path.parse(filePath);
+  return parsed.name;
+}
+
+function conversionStageFromLine(line: string): ConversionStage {
+  if (line.startsWith("[ExtractAudio]")) return "extract";
+  if (line.startsWith("[Metadata]")) return "metadata";
+  if (line.startsWith("[EmbedThumbnail]")) return "thumbnail";
+  if (line.startsWith("[VideoConvertor]")) return "extract";
+  if (line.startsWith("[Fixup]")) return "finalize";
+  if (line.startsWith("[MoveFiles]")) return "move";
+  return "finalize";
+}
+
+function conversionStagesForItem(item: DownloadItem): ConversionStage[] {
+  return [
+    "extract",
+    ...(item.options.embedMetadata ? ["metadata" as const] : []),
+    ...(item.options.embedThumbnail ? ["thumbnail" as const] : []),
+    "finalize",
+    "move",
+    "done",
+  ];
+}
+
+function saveRecentDownload(item: DownloadItem) {
+  const history = store.get("history") ?? [];
+  const next = [
+    { ...item },
+    ...history.filter(
+        (existing) =>
+            existing.id !== item.id && existing.outputPath !== item.outputPath,
+    ),
+  ].slice(0, 10);
+
+  store.set("history", next);
+}
+
+function fileHistoryItem(item: DownloadItem, filePath: string): DownloadItem {
+  return {
+    ...item,
+    id: `${item.id}:${filePath}`,
+    title: titleFromPath(filePath) || item.title,
+    status: "completed",
+    progress: {
+      ...item.progress,
+      percent: 100,
+    },
+    conversionProgress: {
+      currentStage: "done",
+      completedStages: conversionStagesForItem(item),
+    },
+    outputPath: filePath,
+    finishedAt: new Date().toISOString(),
+  };
 }

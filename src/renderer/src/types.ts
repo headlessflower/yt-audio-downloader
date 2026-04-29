@@ -3,6 +3,7 @@ export type AudioFormat = "mp3" | "opus" | "flac";
 export type DownloadStatus =
   | "pending"
   | "downloading"
+  | "converting"
   | "completed"
   | "failed"
   | "canceled"
@@ -23,12 +24,26 @@ export type DownloadProgress = {
   total?: string;
 };
 
+export type ConversionStage =
+  | "extract"
+  | "metadata"
+  | "thumbnail"
+  | "finalize"
+  | "move"
+  | "done";
+
+export type ConversionProgress = {
+  currentStage?: ConversionStage;
+  completedStages: ConversionStage[];
+};
+
 export type DownloadItem = {
   id: string;
   url: string;
   title: string;
   status: DownloadStatus;
   progress: DownloadProgress;
+  conversionProgress?: ConversionProgress;
   outputPath: string;
   error: string;
   createdAt: string;

@@ -1,5 +1,5 @@
 {
-  "name": "Guava-Music-Vault",
+  "name": "fetchr",
   "private": true,
   "version": "1.1.0",
   "main": "dist/main/index.js",
@@ -32,8 +32,8 @@
     "vue": "^3.5.13"
   },
   "build": {
-    "appId": "com.headlessflower.guavamusicvault",
-    "productName": "Guava Music Vault",
+    "appId": "com.headlessflower.fetchr",
+    "productName": "fetchr",
 
     "win": {
       "icon": "build/icon.ico"

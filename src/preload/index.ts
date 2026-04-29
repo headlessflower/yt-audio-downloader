@@ -9,6 +9,9 @@ const api = {
     set: (s: any) => ipcRenderer.invoke("settings:set", s),
     pickFolder: () => ipcRenderer.invoke("dialog:pickFolder"),
   },
+  history: {
+    get: () => ipcRenderer.invoke("history:get"),
+  },
   queue: {
     get: () => ipcRenderer.invoke("queue:get"),
     add: (url: string, options: any) =>

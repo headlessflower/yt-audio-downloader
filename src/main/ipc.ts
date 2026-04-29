@@ -1,4 +1,4 @@
-import { ipcMain, dialog, shell } from "electron";
+import { BrowserWindow, ipcMain, dialog, shell } from "electron";
 import type { DownloadOptions, Settings } from "@renderer/types";
 import { store } from "./store";
 import type { DownloadQueue } from "./queue";
@@ -10,6 +10,7 @@ export function registerIpc(queue: DownloadQueue) {
     store.set("settings", settings);
     return settings;
   });
+  ipcMain.handle("history:get", () => store.get("history"));
 
   ipcMain.handle("dialog:pickFolder", async () => {
     const res = await dialog.showOpenDialog({
@@ -54,7 +55,7 @@ export function registerIpc(queue: DownloadQueue) {
       { role: "selectAll" },
     ]);
 
-    const win = event.sender.getOwnerBrowserWindow();
+    const win = BrowserWindow.fromWebContents(event.sender);
     if (win) menu.popup({ window: win });
   });
   ipcMain.handle("queue:clearFinished", () => {

@@ -1,8 +1,11 @@
 <script setup lang="ts">
 import { ref, watch, computed, toRaw } from "vue";
-import type { Settings } from "../types";
+import type { DownloadItem, Settings } from "../types";
 
-const props = defineProps<{ settings: Settings }>();
+const props = defineProps<{
+  settings: Settings;
+  recentDownloads: DownloadItem[];
+}>();
 const emit = defineEmits<{ (e: "save", next: Settings): void }>();
 
 const draft = ref<Settings>({ ...props.settings });
@@ -17,12 +20,6 @@ const hasDir = computed(() => Boolean((draft.value.outputDir ?? "").trim()));
 
 function normalizeDir(p: string) {
   return (p ?? "").trim().replace(/\/+$/, "");
-}
-
-function plainSettings(s: Settings): Settings {
-  // Ensure we never send a Vue Proxy / reactive object through IPC
-  const raw = toRaw(s) as Settings;
-  return JSON.parse(JSON.stringify(raw));
 }
 
 function toPlain<T>(v: T): T {
@@ -45,6 +42,25 @@ function clearDir() {
   draft.value.outputDir = "";
 }
 
+function filenameFromPath(p: string) {
+  if (!p) return "Downloaded file";
+  const normalized = p.replace(/\\/g, "/");
+  return normalized.slice(normalized.lastIndexOf("/") + 1) || p;
+}
+
+function formatFinishedAt(value: string) {
+  if (!value) return "";
+  return new Intl.DateTimeFormat(undefined, {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(new Date(value));
+}
+
+function openFolder(filePath: string) {
+  window.api.shell.showItemInFolder(filePath);
+}
 
 async function save() {
   const next: Settings = {
@@ -107,8 +123,8 @@ async function save() {
                 </div>
 
               <p class="settings__hint">
-                Pick a folder (recommended) or paste a path. Tilde paths like <code>~/Downloads</code>
-                are OK — the app should expand them in the main process.
+                Pick a folder or paste a path.  Paths like <code>~/Downloads</code>
+                are OK. 
               </p>
             </div>
 
@@ -161,6 +177,43 @@ async function save() {
                 <span class="btn__icon" aria-hidden="true">✓</span>
                 Save settings
             </button>
+
+            <section class="recent" aria-labelledby="recentDownloadsTitle">
+                <div class="recent__header">
+                    <h3 id="recentDownloadsTitle" class="recent__title">
+                        Recent downloads
+                    </h3>
+                    <span class="recent__count">
+                        {{ props.recentDownloads.length }}
+                    </span>
+                </div>
+
+                <div v-if="props.recentDownloads.length === 0" class="recent__empty">
+                    Completed files will appear here.
+                </div>
+
+                <ul v-else class="recent__list">
+                    <li
+                        v-for="item in props.recentDownloads"
+                        :key="item.id"
+                        class="recent__item"
+                    >
+                        <button
+                            class="recent__file"
+                            type="button"
+                            :title="item.outputPath"
+                            @click="openFolder(item.outputPath)"
+                        >
+                            <span class="recent__name">
+                                {{ filenameFromPath(item.outputPath) }}
+                            </span>
+                            <span class="recent__meta">
+                                {{ formatFinishedAt(item.finishedAt) }}
+                            </span>
+                        </button>
+                    </li>
+                </ul>
+            </section>
         </div>
     </section>
 </template>
@@ -436,6 +489,101 @@ async function save() {
 
 .btn--full {
     inline-size: 100%;
+}
+
+.recent {
+    display: grid;
+    gap: 0.75rem;
+    padding-top: 0.25rem;
+}
+
+.recent__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+}
+
+.recent__title {
+    margin: 0;
+    font-size: 0.75rem;
+    font-weight: 650;
+    color: var(--muted);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.recent__count {
+    min-inline-size: 1.5rem;
+    block-size: 1.5rem;
+    display: grid;
+    place-items: center;
+    border: 1px solid var(--border);
+    border-radius: 999rem;
+    background: var(--surface-2);
+    color: var(--muted);
+    font-size: 0.75rem;
+    font-weight: 650;
+}
+
+.recent__empty,
+.recent__file {
+    border: 1px solid var(--border);
+    border-radius: calc(var(--radius) * 0.9);
+    background: var(--surface-2);
+}
+
+.recent__empty {
+    padding: 0.875rem 1rem;
+    color: var(--muted);
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+.recent__list {
+    display: grid;
+    gap: 0.5rem;
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.recent__file {
+    inline-size: 100%;
+    display: grid;
+    gap: 0.25rem;
+    padding: 0.75rem 0.875rem;
+    color: var(--text);
+    text-align: left;
+    cursor: pointer;
+}
+
+.recent__file:hover {
+    background: color-mix(in srgb, var(--surface-2) 88%, var(--text) 12%);
+}
+
+.recent__file:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 0.2rem var(--ring);
+}
+
+.recent__name,
+.recent__meta {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.recent__name {
+    font-size: 0.875rem;
+    font-weight: 650;
+}
+
+.recent__meta {
+    color: var(--muted);
+    font-size: 0.75rem;
+    font-weight: 500;
 }
 
 /* Icon in button (subtle) */
