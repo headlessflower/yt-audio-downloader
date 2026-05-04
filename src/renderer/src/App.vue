@@ -162,11 +162,6 @@ function upgradeFromLimitDialog() {
       />
 
       <div class="brand">
-        <img
-            class="brand__logo"
-            src="/src/guava_logo_black.png"
-            alt="fetchr logo"
-        />
         <div class="brand__text">
           <h1 class="brand__title">fetchr</h1>
           <p class="brand__tagline">
@@ -175,9 +170,6 @@ function upgradeFromLimitDialog() {
         </div>
       </div>
 
-      <div class="status">
-        <span class="status__chip">Desktop</span>
-      </div>
     </header>
 
     <div class="app__layout">
@@ -274,18 +266,6 @@ function upgradeFromLimitDialog() {
   min-width: 0;
 }
 
-.brand__logo {
-  inline-size: 3rem;
-  block-size: 3rem;
-  object-fit: contain;
-
-  /* GNOME-ish: no framed badge, just a quiet surface */
-  background: transparent;
-  border: 0;
-  border-radius: calc(var(--radius) * 0.8);
-  padding: 0.25rem;
-}
-
 .brand__text {
   min-width: 0;
 }
@@ -305,31 +285,6 @@ function upgradeFromLimitDialog() {
   font-weight: 500;
   font-size: 0.875rem;
   line-height: 1.35;
-}
-
-/* Right side status cluster */
-.status {
-  display: flex;
-  align-items: center;
-  gap: 0.625rem;
-}
-
-.status__chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-
-  border: 1px solid var(--border);
-  border-radius: 999rem;
-  padding: 0.5rem 0.75rem;
-
-  background: color-mix(in srgb, var(--surface) 92%, var(--text) 8%);
-  color: var(--text);
-
-  font-weight: 600;
-  font-size: 0.75rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
 }
 
 /* Layout */
@@ -427,9 +382,6 @@ function upgradeFromLimitDialog() {
     position: static;
   }
 
-  .status__chip {
-    display: none;
-  }
 }
 
 /* Reduced motion */

@@ -299,6 +299,7 @@ export class DownloadQueue {
         if (totalMatch) item.progress.total = totalMatch[1];
         if (speedMatch) item.progress.speed = speedMatch[1];
         if (etaMatch) item.progress.eta = etaMatch[1];
+        if (item.progress.percent >= 100) markConverting("extract");
 
         this.pushState();
         return;
@@ -309,6 +310,7 @@ export class DownloadQueue {
       if (m) {
         if (item.status !== "converting") {
           item.progress.percent = Number(m[1]);
+          if (item.progress.percent >= 100) markConverting("extract");
           this.pushState();
         }
       }

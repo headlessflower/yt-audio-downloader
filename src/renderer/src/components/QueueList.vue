@@ -2,9 +2,19 @@
 <script setup lang="ts">
 import type { ConversionStage, QueueState, DownloadItem } from "../types";
 import ClearQueue from "./ClearQueue.vue";
-import { computed } from "vue";
+import { computed, onBeforeUnmount, reactive, watch } from "vue";
 
 const props = defineProps<{ state: QueueState }>();
+const STAGE_DWELL_MS = 950;
+
+type StageView = {
+  visibleStages: ConversionStage[];
+  currentStage?: ConversionStage;
+  completedStages: ConversionStage[];
+  timer: ReturnType<typeof setTimeout> | null;
+};
+
+const stageViews = reactive<Record<string, StageView>>({});
 
 const orderedItems = computed<DownloadItem[]>(() => {
   return [...props.state.items].sort((a, b) => {
@@ -21,6 +31,9 @@ function pct(item: DownloadItem) {
 function statusLabel(item: DownloadItem) {
   if (item.status === "downloading") return "Downloading";
   if (item.status === "converting") return "Converting";
+  if (item.status === "completed" && !isStageRevealComplete(item)) {
+    return "Processing";
+  }
   if (item.status === "pending") return "Pending";
   if (item.status === "completed") return "Completed";
   if (item.status === "failed") return "Failed";
@@ -38,6 +51,23 @@ function conversionStages(item: DownloadItem): ConversionStage[] {
     "move",
     "done",
   ];
+}
+
+function visibleConversionStages(item: DownloadItem): ConversionStage[] {
+  return stageViews[item.id]?.visibleStages ?? targetConversionStages(item);
+}
+
+function targetConversionStages(item: DownloadItem): ConversionStage[] {
+  const stages = conversionStages(item);
+  const activeStage = activeConversionStage(item);
+
+  if (item.status === "completed" || activeStage === "done") return stages;
+  if (!activeStage) return stages.slice(0, 1);
+
+  const activeIndex = stages.indexOf(activeStage);
+  if (activeIndex === -1) return stages.slice(0, 1);
+
+  return stages.slice(0, activeIndex + 1);
 }
 
 function conversionStageLabel(stage: ConversionStage) {
@@ -58,18 +88,124 @@ function activeConversionStage(item: DownloadItem): ConversionStage | undefined 
   return item.conversionProgress?.currentStage;
 }
 
-function conversionStageState(item: DownloadItem, stage: ConversionStage) {
-  const activeStage = activeConversionStage(item);
-  const completedStages = item.conversionProgress?.completedStages ?? [];
+function displayedConversionStage(item: DownloadItem): ConversionStage {
+  return stageViews[item.id]?.currentStage ?? activeConversionStage(item) ?? "extract";
+}
 
-  if (item.status === "completed" || completedStages.includes(stage)) {
-    return "done";
+function displayStatus(item: DownloadItem) {
+  if (item.status === "completed" && !isStageRevealComplete(item)) {
+    return "processing";
   }
+
+  return item.status;
+}
+
+function isStageRevealComplete(item: DownloadItem) {
+  if (item.status !== "completed") return true;
+
+  const view = stageViews[item.id];
+  if (!view) return true;
+
+  const stages = conversionStages(item);
+  return (
+      view.currentStage === "done" &&
+      view.visibleStages.length >= stages.length &&
+      stages.every((stage) => view.completedStages.includes(stage))
+  );
+}
+
+function conversionStageState(item: DownloadItem, stage: ConversionStage) {
+  const view = stageViews[item.id];
+  const activeStage = view?.currentStage ?? activeConversionStage(item);
+  const completedStages =
+      view?.completedStages ?? item.conversionProgress?.completedStages ?? [];
+
+  if (completedStages.includes(stage)) return "done";
 
   if (activeStage === stage) return "active";
 
   return "pending";
 }
+
+function syncStageViews(items: DownloadItem[]) {
+  const liveIds = new Set(items.map((item) => item.id));
+
+  for (const id of Object.keys(stageViews)) {
+    if (!liveIds.has(id)) {
+      if (stageViews[id].timer) clearTimeout(stageViews[id].timer);
+      delete stageViews[id];
+    }
+  }
+
+  for (const item of items) {
+    if (item.status !== "converting" && item.status !== "completed") {
+      const view = stageViews[item.id];
+      if (view?.timer) clearTimeout(view.timer);
+      delete stageViews[item.id];
+      continue;
+    }
+
+    ensureStageView(item);
+    scheduleStageAdvance(item);
+  }
+}
+
+function ensureStageView(item: DownloadItem) {
+  if (stageViews[item.id]) return;
+
+  const firstStage = targetConversionStages(item)[0] ?? "extract";
+
+  stageViews[item.id] = {
+    visibleStages: [firstStage],
+    currentStage: firstStage,
+    completedStages: [],
+    timer: null,
+  };
+}
+
+function scheduleStageAdvance(item: DownloadItem) {
+  const view = stageViews[item.id];
+  if (!view || view.timer) return;
+
+  const targetStages = targetConversionStages(item);
+  if (!targetStages.length) return;
+
+  if (view.visibleStages.length >= targetStages.length) {
+    const finalStage = targetStages[targetStages.length - 1];
+    view.currentStage = finalStage;
+    view.completedStages =
+        finalStage === "done" ? targetStages : targetStages.slice(0, -1);
+    return;
+  }
+
+  view.timer = setTimeout(() => {
+    view.timer = null;
+
+    const latestItem =
+        props.state.items.find((candidate) => candidate.id === item.id) ?? item;
+    const nextTargetStages = targetConversionStages(latestItem);
+    const nextStage = nextTargetStages[view.visibleStages.length];
+    if (!nextStage) return;
+
+    view.visibleStages = [...view.visibleStages, nextStage];
+    view.currentStage = nextStage;
+    view.completedStages = view.visibleStages.slice(0, -1);
+
+    scheduleStageAdvance(latestItem);
+  }, STAGE_DWELL_MS);
+}
+
+watch(
+    () => props.state.items,
+    (items) => syncStageViews(items),
+    { deep: true, immediate: true },
+);
+
+onBeforeUnmount(() => {
+  for (const view of Object.values(stageViews)) {
+    if (view.timer) clearTimeout(view.timer);
+  }
+});
 
 // Avoid referencing `window.api` directly in the template (preload may be missing,
 // and Vue template type-checking will complain about `window.api`).
@@ -175,7 +311,7 @@ const hasFinished = computed(() =>
           </div>
 
           <div class="item__right">
-            <div class="badge" :data-status="item.status">
+            <div class="badge" :data-status="displayStatus(item)">
               {{ statusLabel(item) }}
             </div>
 
@@ -184,7 +320,7 @@ const hasFinished = computed(() =>
                 class="item__sub"
             >
               <template v-if="item.status === 'converting'">
-                {{ conversionStageLabel(item.conversionProgress?.currentStage || "extract") }}
+                {{ conversionStageLabel(displayedConversionStage(item)) }}
               </template>
               <template v-else>
                             <span class="item__speed">{{
@@ -228,7 +364,7 @@ const hasFinished = computed(() =>
         >
           <div class="stagebar" role="list" aria-label="Conversion stages">
             <div
-                v-for="stage in conversionStages(item)"
+                v-for="stage in visibleConversionStages(item)"
                 :key="stage"
                 class="stage"
                 :data-state="conversionStageState(item, stage)"
@@ -553,6 +689,9 @@ const hasFinished = computed(() =>
   background: var(--accent);
 }
 .badge[data-status="converting"]::before {
+  background: color-mix(in srgb, var(--accent) 60%, #22c55e 40%);
+}
+.badge[data-status="processing"]::before {
   background: color-mix(in srgb, var(--accent) 60%, #22c55e 40%);
 }
 .badge[data-status="completed"]::before {
